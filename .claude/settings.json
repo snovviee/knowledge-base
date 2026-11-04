@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/.claude/hooks/check-changed.sh\"",
+            "timeout": 900,
+            "statusMessage": "Checking changed backend/frontend files..."
+          }
+        ]
+      }
+    ]
+  }
+}
