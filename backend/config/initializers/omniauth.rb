@@ -6,6 +6,10 @@
 google_client_id = ENV["GOOGLE_CLIENT_ID"].presence || ("test-google-client-id" if Rails.env.test?)
 google_client_secret = ENV["GOOGLE_CLIENT_SECRET"].presence || ("test-google-client-secret" if Rails.env.test?)
 
+# GitHub sign-in (features/02_github_sign_in). Same rules as Google above.
+github_client_id = ENV["GITHUB_CLIENT_ID"].presence || ("test-github-client-id" if Rails.env.test?)
+github_client_secret = ENV["GITHUB_CLIENT_SECRET"].presence || ("test-github-client-secret" if Rails.env.test?)
+
 # Callback URLs are built from this host, not from the request's Host header, which
 # a client can forge. Local development uses localhost:3000 (README).
 OmniAuth.config.full_host = ENV.fetch("APP_BASE_URL", "http://localhost:3000")
@@ -15,6 +19,13 @@ Rails.application.config.middleware.use OmniAuth::Builder do
     google_client_id,
     google_client_secret,
     scope: "email,profile"
+
+  # user:email lets the strategy read the verified primary email. Without it GitHub
+  # sends no email, which the spec allows (features/02_github_sign_in question 2).
+  provider :github,
+    github_client_id,
+    github_client_secret,
+    scope: "user:email"
 end
 
 # A refused token, a cancelled sign-in, and a failed sign-in all end here, with the

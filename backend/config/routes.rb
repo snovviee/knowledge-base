@@ -11,6 +11,7 @@ Rails.application.routes.draw do
   end
 
   get "auth/google_oauth2/callback", to: "auth/sessions#google"
+  get "auth/github/callback", to: "auth/sessions#github"
 
   # Defines the root path route ("/")
   # root "posts#index"

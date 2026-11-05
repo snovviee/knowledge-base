@@ -89,6 +89,83 @@ describe('App sign-in (features/01_google_sign_in)', () => {
     expect(button).toHaveAttribute('aria-busy', 'true')
   })
 
+  it('AC-02 the sign-in screen offers Continue with GitHub as a POST form with the CSRF token', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url === '/api/session') {
+          return new Response(JSON.stringify({ error: 'unauthenticated' }), { status: 401 })
+        }
+        return new Response(JSON.stringify({ token: 'csrf-token-123' }), { status: 200 })
+      }),
+    )
+
+    const { container } = render(<App />)
+
+    const button = await screen.findByRole('button', { name: 'Continue with GitHub' })
+    expect(button).toBeInTheDocument()
+    const form = button.closest('form')
+    expect(form).not.toBeNull()
+    expect(form).toHaveAttribute('method', 'post')
+    expect(form).toHaveAttribute('action', '/auth/github')
+
+    await waitFor(() => {
+      expect(form!.querySelector('input[name="authenticity_token"]')).toHaveAttribute(
+        'value',
+        'csrf-token-123',
+      )
+    })
+    // Google's button is still there, next to GitHub's.
+    expect(screen.getByRole('button', { name: 'Continue with Google' })).toBeInTheDocument()
+    expect(container.querySelectorAll('form')).toHaveLength(2)
+  })
+
+  it('AC-02 Continue with GitHub shows a busy state and ignores a second click', async () => {
+    const submit = vi.fn((e: Event) => e.preventDefault())
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url === '/api/session') {
+          return new Response(JSON.stringify({ error: 'unauthenticated' }), { status: 401 })
+        }
+        return new Response(JSON.stringify({ token: 'csrf-token-123' }), { status: 200 })
+      }),
+    )
+
+    render(<App />)
+
+    const button = await screen.findByRole('button', { name: 'Continue with GitHub' })
+    button.closest('form')!.addEventListener('submit', submit)
+
+    await userEvent.click(button)
+    await userEvent.click(button)
+
+    expect(submit).toHaveBeenCalledTimes(1)
+    expect(button).toBeDisabled()
+    expect(button).toHaveAttribute('aria-busy', 'true')
+  })
+
+  it('AC-02 the sign-in error for GitHub names GitHub and clears the address', async () => {
+    window.history.replaceState({}, '', '/?sign_in_error=github')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url === '/api/session') {
+          return new Response(JSON.stringify({ error: 'unauthenticated' }), { status: 401 })
+        }
+        return new Response(JSON.stringify({ token: 'csrf-token-123' }), { status: 200 })
+      }),
+    )
+
+    render(<App />)
+
+    expect(
+      await screen.findByText('Sign-in with GitHub did not complete. Try again.'),
+    ).toBeInTheDocument()
+    expect(window.location.search).toBe('')
+    window.history.replaceState({}, '', '/')
+  })
+
   it('AC-01 the sign-in error for Google names Google and clears the address', async () => {
     window.history.replaceState({}, '', '/?sign_in_error=google')
     vi.stubGlobal(

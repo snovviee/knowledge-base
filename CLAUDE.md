@@ -32,9 +32,9 @@ docker compose run --rm frontend npm run build        # tsc -b && vite build, wr
 
 **Two apps, one build output.** `frontend/vite.config.ts` sets `build.outDir` to `../backend/public`, which is gitignored. Compose's `frontend` service runs `vite build --watch` so that directory always holds the latest build. Rails serves that directory as static files: `GET /` returns the built page.
 
-**Backend.** `ApplicationController` inherits from `ActionController::API`. API mode drops the cookie and session middleware, so `backend/config/application.rb` adds them back for sign-in. Routes are `/api/csrf` and `/api/session`, plus `/auth/google_oauth2` (feature 01). `User` is the only model so far. Action Cable is loaded for the real-time review notifications, not built yet.
+**Backend.** `ApplicationController` inherits from `ActionController::API`. API mode drops the cookie and session middleware, so `backend/config/application.rb` adds them back for sign-in. Routes are `/api/csrf` and `/api/session`, plus the sign-in routes `/auth/google_oauth2` and `/auth/github` (features 01 and 02). `User` is the only model so far. Action Cable is loaded for the real-time review notifications, not built yet.
 
-**Auth.** Google sign-in is built (feature 01): OmniAuth in `backend/config/initializers/omniauth.rb`, the test helper in `backend/spec/support/omniauth.rb`. GitHub (feature 02) is not built, and its OmniAuth gem is not in the Gemfile yet.
+**Auth.** Google sign-in (feature 01) and GitHub sign-in (feature 02) are built: OmniAuth providers in `backend/config/initializers/omniauth.rb`, the test helper in `backend/spec/support/omniauth.rb`. Logout (AC-05) is not built, so the sign-in screen is the only place a signed-out user sees.
 
 **Frontend.** `src/App.tsx` is one component with the session states: loading, the sign-in screen, and the main layout (collections and notes areas, each with its empty state). It is not split into components yet. `src/test/setup.ts` loads jest-dom and runs RTL cleanup after each test. Vitest globals are off, so import `describe`, `it`, and `expect` from `vitest` in each test file.
 
@@ -52,7 +52,7 @@ This is how work gets done here. Read `specs/README.md` before any feature work;
 - `specs/docs/` will describe the system as built. Only the Polish step writes it, and it does not exist yet. Read it before designing a new feature once it does.
 - Ship commits locally with the subject `AC-NN: <topic>`. Never push; the owner pushes.
 
-Feature 01 (Google sign-in) is Done. Its failure redirect was changed to name the provider (see its spec, Changes), and that change is built and approved. Feature 02 (GitHub sign-in) is at Plan, with no plan written yet. `specs/docs/` describes the built features: users, the API contract, and the conventions. Polish writes it after each feature is verified.
+Feature 01 (Google sign-in) is Done. Its failure redirect was changed to name the provider (see its spec, Changes), and that change is built and approved. Feature 02 (GitHub sign-in) is in Verify: built, with the manual walkthrough and Polish still to run. `specs/docs/` describes the built features: users, the API contract, and the conventions. Polish writes it after each feature is verified.
 
 ## Stop hook
 
