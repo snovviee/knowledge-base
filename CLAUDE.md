@@ -52,7 +52,7 @@ This is how work gets done here. Read `specs/README.md` before any feature work;
 - `specs/docs/` will describe the system as built. Only the Polish step writes it, and it does not exist yet. Read it before designing a new feature once it does.
 - Ship commits locally with the subject `AC-NN: <topic>`. Never push; the owner pushes.
 
-Feature 01 (Google sign-in) is Done. `specs/docs/` describes the built features: users, the API contract, and the conventions. Polish writes it after each feature is verified.
+Feature 01 (Google sign-in) is Done. Its failure redirect was changed to name the provider (see its spec, Changes), and that change is built and approved. Feature 02 (GitHub sign-in) is at Plan, with no plan written yet. `specs/docs/` describes the built features: users, the API contract, and the conventions. Polish writes it after each feature is verified.
 
 ## Stop hook
 

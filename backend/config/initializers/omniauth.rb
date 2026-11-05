@@ -17,8 +17,18 @@ Rails.application.config.middleware.use OmniAuth::Builder do
     scope: "email,profile"
 end
 
-# A refused token, a cancelled sign-in, and a failed sign-in all end here, with
-# the same message. The provider's error text is not passed on.
-OmniAuth.config.on_failure = lambda do |_env|
-  [ 302, { "location" => "/?sign_in_error=google" }, [] ]
+# A refused token, a cancelled sign-in, and a failed sign-in all end here, with the
+# same message for that provider. The provider's error text is not passed on. The
+# name comes from the failed strategy, so GitHub failures name GitHub
+# (features/02_github_sign_in). Unknown or missing strategies fall back to "google".
+#
+# The strategy's name is OmniAuth's (google_oauth2), and the address uses the short
+# provider name the screen knows (google, github).
+SIGN_IN_ERROR_PROVIDERS = { "google_oauth2" => "google", "github" => "github" }.freeze
+
+OmniAuth.config.on_failure = lambda do |env|
+  strategy = env["omniauth.error.strategy"]
+  name = strategy.respond_to?(:name) ? strategy.name.to_s : nil
+  provider = SIGN_IN_ERROR_PROVIDERS.fetch(name, "google")
+  [ 302, { "location" => "/?sign_in_error=#{provider}" }, [] ]
 end

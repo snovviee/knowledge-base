@@ -24,7 +24,7 @@
   - Identity is `provider` + `provider_user_id` (requirements 3.1). Email is stored only when Google sends it.
   - Profile fields are written when the record is created. Later sign-ins do not change them in this feature. Record rules belong to AC-03.
   - `display_name` is NOT NULL. Google sends `name` when the `profile` scope is granted, and the scopes are fixed here.
-  - All failures share one path: OmniAuth's failure handler redirects to `/?sign_in_error=google`. The provider's error text is not passed on.
+  - All failures share one path: OmniAuth's failure handler redirects to `/?sign_in_error=<provider>`, where the provider is `google` for Google and `github` for GitHub (changed 2026-11-05, see Deviations). The provider's error text is not passed on.
   - Test mode is on in every example, through `spec/support/omniauth.rb`. The one exception is the state-mismatch test (item 13), which turns test mode off for its example. Test mode skips OmniAuth's real state check, so only the off setting exercises it. OmniAuth checks `state` before it contacts Google, so that test needs no network.
   - Configuration: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are read in `config/initializers/omniauth.rb`. Rails generates `secret_key_base` in development and test. Production needs `SECRET_KEY_BASE` set.
   - Callback URL: `http://localhost:3000/auth/google_oauth2/callback`.
@@ -77,6 +77,11 @@
   - Test first: AC-01 main layout shows the no collections and no notes empty states (`src/App.test.tsx`)
 - [x] 23. [BE] The request log does not record the OAuth `code` or `state` of a callback. Added after Verify found them in plain text. Filter them in `backend/config/initializers/filter_parameter_logging.rb`.
   - Test first: AC-01 the request log of a Google callback does not contain the OAuth code or state (`spec/requests/auth/google_sign_in_spec.rb`)
+- [x] 24. [BE] The failure redirect names the provider (Changes, 2026-11-05). A failed or cancelled Google sign-in redirects to `/?sign_in_error=google`, as before. The failure handler reads the provider from the failed request, so a GitHub failure can redirect to `/?sign_in_error=github` (feature 02). This item only makes the name come from the provider, and GitHub itself is feature 02.
+  - Test first: AC-01 a failed Google sign-in redirects with the provider name in the sign-in error (`spec/requests/auth/google_sign_in_spec.rb`)
+- [x] 25. [FE] The sign-in screen shows the message for the provider named in the address: Google shows "Sign-in with Google did not complete. Try again.", GitHub shows "Sign-in with GitHub did not complete. Try again.". Feature 02 adds the GitHub message, so this item covers the Google one only, and it keeps the address clean.
+  - Test first: AC-01 the sign-in error for Google names Google and clears the address (`frontend/src/App.test.tsx`)
+  - Note (2026-11-05): the Google test passed before this item's code was written, because the Google message already existed. The GitHub message is feature 02's work, and the screen change for it is there. Ticked as covered, with the Google test kept as a regression test.
 
 ## Test plan
 
@@ -131,4 +136,5 @@ Written in Polish, from the code as built.
 - 2026-11-05 (Polish): Drift check found no mismatch between the feature's documents and the code. Verified: each `users` column is in `docs/domain/users.md`; each endpoint is in `docs/api_contract.md` and answers as documented, live; the session holds only `user_id`; the cookie is `httponly` and `samesite=lax`.
 - 2026-11-05 (Polish): Found and listed, not fixed. The session cookie is not marked `secure` in the app code. Production sets `force_ssl`, but Rails sets the flag only when the cookie asks for it. The approved spec and plan say nothing about the flag, so this is a gap in the requirements, not a code contradiction. The README lists it under Known limitations for the owner to decide.
 - 2026-11-05 (Polish, out of scope): `backend/config/cable.yml` uses Redis in production, but the Gemfile comments out the `redis` gem. Existing scaffold, not part of feature 01. Not fixed here.
+- 2026-11-05 (Changes, failure names the provider): Items 24 and 25 were added for the spec change approved on the same day. Item 24 is built: the failure handler names the strategy's provider, so a GitHub failure names `github` (feature 02). The short names come from a map, because OmniAuth's strategy name is `google_oauth2`, and the address uses `google`. Item 25's Google test passed before its code, so it is ticked as covered: the GitHub message is feature 02's work.
 - 2026-11-05: Known limitation, not fixed here. The SQL log of a user insert shows the email, the avatar URL, and the Google user ID. Rails does not filter SQL in logs. Feature 21 (data privacy) owns it, and the README lists it.

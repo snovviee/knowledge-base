@@ -66,4 +66,9 @@ Not part of this feature: GitHub sign-in (AC-02), the record rules beyond what s
 
 ## Changes
 
-<!-- Empty until the spec is approved. Then: date, reason, what changes. -->
+### 2026-11-05: The failure redirect names the provider
+
+- Reason: feature 02 adds GitHub sign-in. Its failures must show a GitHub message, so the one shared failure redirect can no longer say only `google`. The owner chose to name the provider (feature 02, question on the failure message).
+- Change: the sign-in failure redirect `/?sign_in_error=google` → the same path with the provider name: `/?sign_in_error=google` stays for Google. A GitHub failure uses `/?sign_in_error=github`. The message for Google does not change: "Sign-in with Google did not complete. Try again."
+- Change: edge case, a failed or cancelled sign-in: the address names the provider that failed, not a fixed `google`.
+- Stage: approved by the owner on 2026-11-05. The header stays at Design and not approved until feature 01's plan gets the new item below and the owner approves that plan. Its code changes only through that item.

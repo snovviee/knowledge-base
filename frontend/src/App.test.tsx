@@ -89,6 +89,27 @@ describe('App sign-in (features/01_google_sign_in)', () => {
     expect(button).toHaveAttribute('aria-busy', 'true')
   })
 
+  it('AC-01 the sign-in error for Google names Google and clears the address', async () => {
+    window.history.replaceState({}, '', '/?sign_in_error=google')
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url === '/api/session') {
+          return new Response(JSON.stringify({ error: 'unauthenticated' }), { status: 401 })
+        }
+        return new Response(JSON.stringify({ token: 'csrf-token-123' }), { status: 200 })
+      }),
+    )
+
+    render(<App />)
+
+    expect(
+      await screen.findByText('Sign-in with Google did not complete. Try again.'),
+    ).toBeInTheDocument()
+    expect(window.location.search).toBe('')
+    window.history.replaceState({}, '', '/')
+  })
+
   it('AC-01 shows the sign-in error and removes it from the address', async () => {
     window.history.replaceState({}, '', '/?sign_in_error=google')
     vi.stubGlobal(

@@ -53,6 +53,32 @@ RSpec.describe "Google sign-in", type: :request do
     end
   end
 
+  describe "failure redirect names the provider" do
+    # The failure handler reads the provider from OmniAuth's failure env. This calls
+    # the handler directly with a failed strategy named after its provider, so the
+    # provider name can be checked before feature 02 adds GitHub.
+    it "AC-01 a failed Google sign-in redirects with the provider name in the sign-in error" do
+      strategy = Struct.new(:name).new("google_oauth2")
+      env = { "omniauth.error.strategy" => strategy, "omniauth.error.type" => :access_denied }
+
+      status, headers, _body = OmniAuth.config.on_failure.call(env)
+
+      expect(status).to eq(302)
+      expect(headers["location"]).to eq("/?sign_in_error=google")
+    end
+
+    # The provider name comes from the failed strategy, not a fixed value. A failure
+    # from any other provider must name that provider, so the handler cannot always say "google".
+    it "AC-01 a failure from another provider names that provider, not google" do
+      strategy = Struct.new(:name).new("github")
+      env = { "omniauth.error.strategy" => strategy, "omniauth.error.type" => :access_denied }
+
+      _status, headers, _body = OmniAuth.config.on_failure.call(env)
+
+      expect(headers["location"]).to eq("/?sign_in_error=github")
+    end
+  end
+
   describe "callback" do
     before do
       OmniAuth.config.mock_auth[:google_oauth2] = OmniAuth::AuthHash.new(
