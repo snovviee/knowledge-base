@@ -1,0 +1,36 @@
+# Development stack for the Personal Knowledge Base. Everything runs in Docker (project.md).
+#
+#   docker compose up                        the app on http://localhost:3000
+#   docker compose run --rm backend <cmd>    for example: bundle exec rspec
+#   docker compose run --rm frontend <cmd>   for example: npx vitest run
+#
+# The repository is mounted at /app. Gems and node_modules live in the named
+# volumes below. The entrypoints in docker/ install them when the Gemfile or
+# package.json changes.
+
+name: knowledge-base
+
+services:
+  backend:
+    build:
+      context: .
+      target: backend
+    volumes:
+      - .:/app
+      - bundle:/usr/local/bundle
+    ports:
+      - "127.0.0.1:3000:3000"
+
+  # Rails serves the React build (project.md). vite build --watch writes it into
+  # backend/public, so frontend/vite.config.ts sets build.outDir to '../backend/public'.
+  frontend:
+    build:
+      context: .
+      target: frontend
+    volumes:
+      - .:/app
+      - node_modules:/app/frontend/node_modules
+
+volumes:
+  bundle:
+  node_modules:

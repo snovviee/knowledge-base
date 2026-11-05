@@ -1,0 +1,3 @@
+# The images copy only the entrypoints in docker/. compose.yaml mounts the source.
+*
+!docker/
