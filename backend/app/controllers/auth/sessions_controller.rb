@@ -16,7 +16,18 @@ module Auth
       def sign_in_from_provider
         auth = request.env["omniauth.auth"]
 
-        user = User.find_by(provider: auth.provider, provider_user_id: auth.uid) ||
+        user = find_or_create_user(auth)
+        return redirect_to "/?sign_in_error=#{auth.provider == 'github' ? 'github' : 'google'}" unless user
+
+        session[:user_id] = user.id
+        redirect_to "/", allow_other_host: false
+      end
+
+      # Find the account, or create it on the first sign-in (AC-03). Two sign-ins for
+      # the same new account can race: the second create then fails because the
+      # account already exists. In that case the record the other request made is used.
+      def find_or_create_user(auth)
+        User.find_by(provider: auth.provider, provider_user_id: auth.uid) ||
           User.create!(
             provider: auth.provider,
             provider_user_id: auth.uid,
@@ -24,9 +35,11 @@ module Auth
             email: auth.info.email,
             avatar_url: auth.info.image
           )
-
-        session[:user_id] = user.id
-        redirect_to "/", allow_other_host: false
+      rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+        # A duplicate is a race: use the record the other request created. Any other
+        # invalid record (for example no name at all) is a failed sign-in, which returns
+        # nil and takes the same failure redirect as a cancelled sign-in.
+        User.find_by(provider: auth.provider, provider_user_id: auth.uid)
       end
 
       # GitHub users may leave their public name empty. The record needs a display
