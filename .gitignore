@@ -1,0 +1,2 @@
+# Local secrets: OAuth credentials and SECRET_KEY_BASE. Never commit.
+.env

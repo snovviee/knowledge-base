@@ -15,6 +15,11 @@ services:
     build:
       context: .
       target: backend
+    # Local secrets (OAuth credentials, SECRET_KEY_BASE). Optional, so the stack
+    # starts without it. Git ignores it.
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - .:/app
       - bundle:/usr/local/bundle

@@ -40,5 +40,10 @@ module KnowledgeBase
     # Middleware like session, flash, cookies can be added back manually.
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
+
+    # API mode leaves out the cookie and session middleware. Sign-in needs both
+    # (features/01_google_sign_in). The session holds only the signed-in user's id.
+    config.middleware.use ActionDispatch::Cookies
+    config.middleware.use ActionDispatch::Session::CookieStore, key: "_knowledge_base_session"
   end
 end

@@ -30,15 +30,15 @@ docker compose run --rm frontend npm run build        # tsc -b && vite build, wr
 
 ## Architecture
 
-**Two apps, one build output.** `frontend/vite.config.ts` sets `build.outDir` to `../backend/public`, which is gitignored. Compose's `frontend` service runs `vite build --watch` so that directory always holds the latest build. The plan is for Rails to serve that build, but nothing does yet: `backend/config/routes.rb` has only the `/up` health route.
+**Two apps, one build output.** `frontend/vite.config.ts` sets `build.outDir` to `../backend/public`, which is gitignored. Compose's `frontend` service runs `vite build --watch` so that directory always holds the latest build. Rails serves that directory as static files: `GET /` returns the built page.
 
-**Backend.** `ApplicationController` inherits from `ActionController::API`. There are no models yet. Action Cable is loaded (`backend/config/application.rb`) for the real-time review notifications.
+**Backend.** `ApplicationController` inherits from `ActionController::API`. API mode drops the cookie and session middleware, so `backend/config/application.rb` adds them back for sign-in. Routes are `/api/csrf` and `/api/session`, plus `/auth/google_oauth2` (feature 01). `User` is the only model so far. Action Cable is loaded for the real-time review notifications, not built yet.
 
-**Auth is specified but not installed.** `project.md` calls for OmniAuth (Google, GitHub). The Gemfile has no OmniAuth gem, and bcrypt is commented out. Add each gem in the feature that needs it.
+**Auth.** Google sign-in is built (feature 01): OmniAuth in `backend/config/initializers/omniauth.rb`, the test helper in `backend/spec/support/omniauth.rb`. GitHub (feature 02) is not built, and its OmniAuth gem is not in the Gemfile yet.
 
-**Frontend.** A placeholder: `src/App.tsx` renders one heading, mounted from `src/main.tsx`. `src/test/setup.ts` loads jest-dom and runs RTL cleanup after each test. Vitest globals are off, so import `describe`, `it`, and `expect` from `vitest` in each test file.
+**Frontend.** `src/App.tsx` is one component with the session states: loading, the sign-in screen, and the main layout (collections and notes areas, each with its empty state). It is not split into components yet. `src/test/setup.ts` loads jest-dom and runs RTL cleanup after each test. Vitest globals are off, so import `describe`, `it`, and `expect` from `vitest` in each test file.
 
-**Planned domain areas.** `specs/README.md` lists six: users, collections, tags, notes, reviews, notifications. None is built yet.
+**Planned domain areas.** `specs/README.md` lists six: users, collections, tags, notes, reviews, notifications. `users` is built (feature 01). The other five are not.
 
 ## Spec-driven workflow
 
@@ -52,7 +52,7 @@ This is how work gets done here. Read `specs/README.md` before any feature work;
 - `specs/docs/` will describe the system as built. Only the Polish step writes it, and it does not exist yet. Read it before designing a new feature once it does.
 - Ship commits locally with the subject `AC-NN: <topic>`. Never push; the owner pushes.
 
-No feature is built yet: there are no test files and no `specs/docs/`.
+Feature 01 (Google sign-in) is Done. `specs/docs/` describes the built features: users, the API contract, and the conventions. Polish writes it after each feature is verified.
 
 ## Stop hook
 

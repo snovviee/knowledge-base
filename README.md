@@ -1,93 +1,78 @@
-# knowledge-base
+# Personal Knowledge Base
 
+A personal knowledge base with review reminders. Notes are organized into collections and tags, and the app reminds you to review them. Each user has a private workspace, and signs in with Google or GitHub (SSO only).
 
+This README covers what is built so far: Google sign-in (feature 01). The rest of the app is specified in `specs/` and is not built yet.
 
-## Getting started
+## Stack
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- Backend: Ruby on Rails 8.1 in API mode, SQLite, OmniAuth (Google)
+- Frontend: React with TypeScript, Vite, Tailwind CSS
+- Tests: RSpec (backend), Vitest with React Testing Library (frontend)
+- Everything runs in Docker (`compose.yaml`)
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Running locally
 
-## Add your files
+Requirements: Docker with the Compose plugin.
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```bash
+docker compose up        # the app on http://localhost:3000
 ```
-cd existing_repo
-git remote add origin https://assets.engine.capgemini.com/engine_kpopko/knowledge-base.git
-git branch -M main
-git push -uf origin main
+
+The first start builds the images and installs gems and packages into volumes, so it takes a few minutes.
+
+Run the tests and linters:
+
+```bash
+docker compose run --rm backend bundle exec rspec
+docker compose run --rm backend bundle exec rubocop
+docker compose run --rm frontend npx vitest run
+docker compose run --rm frontend npx eslint .
 ```
 
-## Integrate with your tools
+Run one backend test: `docker compose run --rm backend bundle exec rspec <file> -e "<test name>"`.
 
-* [Set up project integrations](https://assets.engine.capgemini.com/engine_kpopko/knowledge-base/-/settings/integrations)
+## Environment variables
 
-## Collaborate with your team
+Put these in a `.env` file at the repository root. Compose reads it and passes it to the backend container. Git ignores the file (`.gitignore`), so it is not committed. Copy values into it yourself.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+| Variable | Needed | What it is for |
+|---|---|---|
+| `GOOGLE_CLIENT_ID` | to sign in with Google | The client id of your Google OAuth client. See below. |
+| `GOOGLE_CLIENT_SECRET` | to sign in with Google | The client secret of that client. |
+| `APP_BASE_URL` | no | The address the app is served at, used to build the sign-in callback URL. Defaults to `http://localhost:3000`. |
+| `SECRET_KEY_BASE` | production only | Signs and encrypts the session cookie. Development and test generate one when none is set. Production must set it, for example with `bin/rails secret`. |
 
-## Test and Deploy
+Without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, the app runs, but "Continue with Google" cannot complete a sign-in. Tests do not need them: they use placeholder values and never reach Google.
 
-Use the built-in continuous integration in GitLab.
+## Google OAuth credentials
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+1. Open the Google Cloud Console, and create a project or choose one.
+2. Configure the OAuth consent screen, and add the scopes `email` and `profile`.
+3. Create an OAuth client ID of type **Web application**.
+4. Add this authorized redirect URI: `http://localhost:3000/auth/google_oauth2/callback`.
+5. Copy the client id and client secret into `.env` as `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+6. Restart the stack: `docker compose up`.
 
-***
+The callback URL is built from `APP_BASE_URL`, not from the request's `Host` header, which a client can forge. If you serve the app somewhere else, set `APP_BASE_URL` and add the matching redirect URI in Google.
 
-# Editing this README
+## Google sign-in
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+- The sign-in screen offers "Continue with Google". Choosing it sends you to Google.
+- On the first successful sign-in, the app creates a user record. The record keeps the provider, the provider's user id, your display name, and your email and avatar if Google sends them.
+- A later sign-in with the same Google account finds the same user. It creates no second record, even if your email changed at Google.
+- A cancelled or failed sign-in returns to the sign-in screen with the message "Sign-in with Google did not complete. Try again." The provider's error text is not shown.
 
-## Suggestions for a good README
+## Known limitations
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+- **Sign-in with GitHub** is not built (feature 02).
+- **Sign-out** is not built (feature 05). Use a private browser window to start over.
+- **Logs contain personal data in one place.** The SQL log of a user insert shows the email, the avatar URL, and the Google user id. Rails does not filter SQL in logs. Feature 21 (data privacy) owns this.
+- **The session cookie is not marked `secure`** in the app code. Production sets `force_ssl`, which redirects HTTP to HTTPS, but the cookie flag itself is not set. Open for review before production use.
+- **Profile fields are set once.** A later sign-in does not refresh the display name, email, or avatar.
+- **The app shows no notes or collections yet.** The main layout shows the empty states only (features 06 and 09).
+- **Timezone.** Times are stored in UTC. The review features define how "today" is computed (requirements.md section 11).
 
-## Name
-Choose a self-explaining name for your project.
+## Specifications
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+The specification is in `specs/`. Each feature has a folder `specs/features/NN_topic/` with `spec.md` (what the feature does) and `plan.md` (how it is built, the test-first checklist, and the manual test plan). The current system is documented in `specs/docs/`. The workflow is in `specs/README.md`.

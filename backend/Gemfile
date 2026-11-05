@@ -37,3 +37,6 @@ group :development, :test do
   # Test framework [https://rspec.info/features/8-0/rspec-rails/]
   gem "rspec-rails", "~> 8.0"
 end
+
+gem "omniauth-google-oauth2", "~> 1.2"
+gem "omniauth-rails_csrf_protection", "~> 2.0"
