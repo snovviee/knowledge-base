@@ -1,6 +1,6 @@
 # Feature: 03_user_auto_create
 
-**Stage:** Verify
+**Stage:** Done
 **Approved:** yes, 2026-11-05 (the owner's standing approval for spec, plan, and workflow gates through feature 06, given 2026-11-05; the three answers above are the owner's own)
 
 ## Acceptance criterion

@@ -44,8 +44,8 @@ Starts a sign-in with Google (AC-01).
 Google returns here after the user approves or cancels (AC-01, AC-03).
 
 - Request: the query string Google sends (`code`, `state`, or `error`). OmniAuth checks `state` before any token exchange.
-- Response `302` to `/`, with the user signed in: after a successful sign-in. The user record is created on the first sign-in and found on later ones (AC-03).
-- Response `302` to `/?sign_in_error=google`: when the user cancels at Google, Google reports an error, the `state` does not match the one stored in this session (`csrf_detected`), or Google cannot be reached. The provider's error text is not passed on.
+- Response `302` to `/`, with the user signed in: after a successful sign-in. The user record is created on the first sign-in and found on later ones (AC-03). Two sign-ins for the same new account that finish at the same time both get this response, with one record created (AC-03).
+- Response `302` to `/?sign_in_error=google`: when the user cancels at Google, Google reports an error, the `state` does not match the one stored in this session (`csrf_detected`), or Google cannot be reached. The provider's error text is not passed on. It also applies when Google sends no name and no login for the account, since no record can be stored without a display name (AC-03).
 
 Logging: the callback's `code` and `state` are filtered from the request log (`backend/config/initializers/filter_parameter_logging.rb`). They appear as `[FILTERED]`.
 
@@ -66,8 +66,8 @@ Starts a sign-in with GitHub (AC-02).
 GitHub returns here after the user approves or cancels (AC-02, AC-03).
 
 - Request: the query string GitHub sends (`code`, `state`, or `error`). OmniAuth checks `state` before any token exchange.
-- Response `302` to `/`, with the user signed in: after a successful sign-in. The user record is created on the first sign-in and found on later ones (AC-02, AC-03). A GitHub account with no email signs in without one.
-- Response `302` to `/?sign_in_error=github`: when the user cancels at GitHub, GitHub reports an error, the `state` does not match the one stored in this session (`csrf_detected`), or GitHub cannot be reached. The provider's error text is not passed on.
+- Response `302` to `/`, with the user signed in: after a successful sign-in. The user record is created on the first sign-in and found on later ones (AC-02, AC-03). A GitHub account with no email signs in without one. Two sign-ins for the same new account that finish at the same time both get this response, with one record created (AC-03).
+- Response `302` to `/?sign_in_error=github`: when the user cancels at GitHub, GitHub reports an error, the `state` does not match the one stored in this session (`csrf_detected`), or GitHub cannot be reached. The provider's error text is not passed on. It also applies when GitHub sends no name and no login for the account. GitHub always sends a login, so in practice this does not happen (AC-03).
 
 Logging: as for the Google callback above, `code` and `state` appear as `[FILTERED]`.
 

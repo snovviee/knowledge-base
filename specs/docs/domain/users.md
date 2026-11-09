@@ -26,10 +26,12 @@ Validations (`backend/app/models/user.rb`):
 - **The record is created at the first successful sign-in** with that provider account. Later sign-ins find it and create nothing (AC-01, AC-03).
 - **Email is optional.** A provider account without an email signs in, and the record has no email (AC-01). This includes GitHub accounts, which may send no email (AC-02).
 - **No account linking.** A Google account and a GitHub account of the same person are two users (requirements.md 3.1, AC-02).
+- **Two sign-ins for one new account create one record.** If two sign-ins for the same provider account finish at the same time, one record is created and both sign the user in. The sign-in that loses the race uses the record the other one made, with no error page (AC-03).
+- **A provider account with no usable name is not stored.** `display_name` is required, so an account with neither a name nor a login creates no record. The user is not signed in, and the sign-in shows that provider's failure message (AC-03). GitHub always sends a login, so for GitHub this rule does not apply in practice.
 
 ## Chosen approaches
 
-- **Profile fields are set once, at creation.** Later sign-ins do not refresh `display_name`, `email`, or `avatar_url`. The owner chose this for feature 01. Refreshing them is open for a later feature.
+- **Profile fields are set once, at creation.** Later sign-ins do not refresh `display_name`, `email`, or `avatar_url`. The owner chose this for feature 01 and confirmed it for feature 03 (AC-01, AC-03). Refreshing them is open for a later feature.
 - **Sign-in is the only way a user record is created.** There is no sign-up form and no user API (requirements.md section 1, SSO only).
 - **GitHub identity is the numeric id.** A GitHub account's `provider_user_id` is GitHub's numeric `id` as a string, with `provider` `github`. The login and the email can change, so neither is identity (AC-02).
 - **GitHub display name falls back to the login.** When GitHub sends no public name, `display_name` is the GitHub login. The login is always present for a GitHub account (AC-02).
