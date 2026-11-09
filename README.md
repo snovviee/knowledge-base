@@ -2,7 +2,7 @@
 
 A personal knowledge base with review reminders. Notes are organized into collections and tags, and the app reminds you to review them. Each user has a private workspace, and signs in with Google or GitHub (SSO only).
 
-This README covers what is built so far: Google sign-in (feature 01) and GitHub sign-in (feature 02). The rest of the app is specified in `specs/` and is not built yet.
+This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), and collections (feature 06). Tags, notes, and reviews are specified in `specs/` and are not finished yet.
 
 ## Stack
 
@@ -85,13 +85,26 @@ The app asks GitHub for the `user:email` scope, so GitHub can send your verified
 - A Google account and a GitHub account of the same person are two users. The app does not link them.
 - A cancelled or failed sign-in returns to the sign-in screen with the message "Sign-in with GitHub did not complete. Try again." The provider's error text is not shown.
 
+## Collections API
+
+Collections are built (feature 06). All of these are under `/api`, and each needs a sign-in:
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/collections` | Lists your collections, in alphabetical order |
+| `POST` | `/api/collections` | Creates one from `{ "name": "..." }` |
+| `PATCH` or `PUT` | `/api/collections/:id` | Renames one from `{ "name": "..." }` |
+| `DELETE` | `/api/collections/:id` | Deletes one |
+
+A request that changes data sends the header `X-CSRF-Token` with the token from `GET /api/csrf`. The full contract is in `specs/docs/api_contract.md`.
+
 ## Known limitations
 
-- **Sign-out** is not built (feature 05). Use a private browser window to start over.
+- **Sign-in records stay after a cookie expires.** A browser that never logs out keeps its sign-in record after its cookie expires. The record can no longer be used, but nothing removes it (feature 05).
 - **Logs contain personal data in one place.** The SQL log of a user insert shows the email, the avatar URL, and the Google user id. Rails does not filter SQL in logs. Feature 21 (data privacy) owns this.
 - **The session cookie is not marked `secure`** in the app code. Production sets `force_ssl`, which redirects HTTP to HTTPS, but the cookie flag itself is not set. Open for review before production use.
 - **Profile fields are set once.** A later sign-in does not refresh the display name, email, or avatar.
-- **The app shows no notes or collections yet.** The main layout shows the empty states only (features 06 and 09).
+- **The app shows no notes yet.** The notes area shows its empty state only (feature 09).
 - **Timezone.** Times are stored in UTC. The review features define how "today" is computed (requirements.md section 11).
 
 ## Specifications
