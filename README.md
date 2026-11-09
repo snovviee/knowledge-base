@@ -2,7 +2,7 @@
 
 A personal knowledge base with review reminders. Notes are organized into collections and tags, and the app reminds you to review them. Each user has a private workspace, and signs in with Google or GitHub (SSO only).
 
-This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), and collections (feature 06). Tags, notes, and reviews are specified in `specs/` and are not finished yet.
+This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), collections (feature 06), and tags (feature 08). Notes and reviews are specified in `specs/` and are not finished yet.
 
 ## Stack
 
@@ -95,6 +95,17 @@ Collections are built (feature 06). All of these are under `/api`, and each need
 | `POST` | `/api/collections` | Creates one from `{ "name": "..." }` |
 | `PATCH` or `PUT` | `/api/collections/:id` | Renames one from `{ "name": "..." }` |
 | `DELETE` | `/api/collections/:id` | Deletes one |
+
+### Tags API
+
+Tags are built (feature 08). The same rules and the same shape apply as for collections, under `/api/tags`:
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/tags` | Lists your tags, in alphabetical order |
+| `POST` | `/api/tags` | Creates one from `{ "name": "..." }` |
+| `PATCH` or `PUT` | `/api/tags/:id` | Renames one from `{ "name": "..." }` |
+| `DELETE` | `/api/tags/:id` | Deletes one |
 
 A request that changes data sends the header `X-CSRF-Token` with the token from `GET /api/csrf`. The full contract is in `specs/docs/api_contract.md`.
 

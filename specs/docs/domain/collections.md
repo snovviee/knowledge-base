@@ -35,4 +35,4 @@ Relations: a user has many collections (`backend/app/models/user.rb`). A note be
 
 - **The answers to spec questions 5 to 8 are the rules above:** tidying, length, case, and order. Each was taken under the owner's standing instruction of 2026-11-05, as the recommended option (AC-06).
 - **`folded_name` is a stored column.** SQLite's `LOWER()` and `NOCASE` fold only ASCII letters, so they cannot meet the case rule in every alphabet. Ruby folds Unicode (feature 06, Decisions).
-- **The same codes are used in every named area.** `blank`, `too_long`, and `taken` mean the same for collections and tags (feature 08).
+- **The same codes are used in every named area.** `blank`, `too_long`, and `taken` mean the same for collections and tags (AC-08). The tag rules are in [domain/tags.md](tags.md).

@@ -123,6 +123,46 @@ Deletes a collection (AC-06).
 - Response `404`: `{ "error": "not_found" }`, as for `PATCH`. A collection deleted in another tab also answers 404.
 - Errors: `401` and `403`. A collection that still has notes is refused. That answer belongs to features 07 and 09, which are not Done, and is not documented here.
 
+## Tags
+
+The signed-in user's tags (AC-08). The shape is the same as for collections (see Collections). Every endpoint needs a sign-in. Requests that change data also need the anti-forgery header (see Conventions). The name rules are in [domain/tags.md](domain/tags.md). Tags add no error or status codes of their own.
+
+### `GET /api/tags`
+
+Lists the signed-in user's tags (AC-08).
+
+- Request: no body.
+- Response `200`: `{ "tags": [ { "id": <integer>, "name": "<string>" } ] }`, in alphabetical order, ignoring case.
+- Errors: `401` `unauthenticated`.
+
+### `POST /api/tags`
+
+Creates a tag (AC-08).
+
+- Request: a JSON body `{ "name": "<string>" }`, and the header `X-CSRF-Token`. A name that is missing or not text counts as `blank`.
+- Response `201`: `{ "tag": { "id": <integer>, "name": "<string>" } }`, with the name as tidied.
+- Response `422`: `{ "error": "validation_failed", "fields": { "name": "blank" | "too_long" | "taken" } }`. Nothing is created.
+- Errors: `401` `unauthenticated`; `400` `bad_request`, when the body is not JSON; `403` `invalid_csrf_token`.
+
+### `PATCH /api/tags/:id`
+
+Renames a tag (AC-08). `PUT` to the same path does the same.
+
+- Request: a JSON body `{ "name": "<string>" }`, and the header `X-CSRF-Token`.
+- Response `200`: `{ "tag": { "id": <integer>, "name": "<string>" } }`.
+- Response `422`: `{ "error": "validation_failed", "fields": { "name": "blank" | "too_long" | "taken" } }`. The name is unchanged.
+- Response `404`: `{ "error": "not_found" }`, for another user's tag, a missing one, or an id that is not a number. Nothing changes.
+- Errors: `401`, `400`, and `403`, as for `POST`.
+
+### `DELETE /api/tags/:id`
+
+Deletes a tag (AC-08).
+
+- Request: no body, and the header `X-CSRF-Token`.
+- Response `204`: no body. Only the tag is deleted (see the rule in [domain/tags.md](domain/tags.md)).
+- Response `404`: `{ "error": "not_found" }`, as for `PATCH`. A tag deleted in another tab also answers 404.
+- Errors: `401` and `403`.
+
 ## WebSocket
 
 None in feature 01. The WebSocket connection, its channels, and its messages are defined by feature 22 and later.
