@@ -8,10 +8,10 @@ Attributes (table `users`):
 
 | Attribute | Type | Required | Notes |
 |---|---|---|---|
-| `provider` | string | yes | The SSO provider. `google_oauth2` for Google (AC-01). |
-| `provider_user_id` | string | yes | The provider's own id for the account. Unique together with `provider`. |
-| `email` | string | no | Only when the provider sends one (requirements.md 3.1). |
-| `display_name` | string | yes | The name the provider gives for the account (AC-01). |
+| `provider` | string | yes | The SSO provider. `google_oauth2` for Google (AC-01), `github` for GitHub (AC-02). |
+| `provider_user_id` | string | yes | The provider's own id for the account. Unique together with `provider`. For GitHub, the numeric GitHub id as a string (AC-02). |
+| `email` | string | no | Only when the provider sends one (requirements.md 3.1). GitHub may send none (AC-02). |
+| `display_name` | string | yes | The name the provider gives for the account (AC-01). For GitHub with no public name, the login (AC-02). |
 | `avatar_url` | string | no | The picture URL the provider gives. |
 | `created_at`, `updated_at` | datetime | yes | Stored in UTC. |
 
@@ -22,12 +22,14 @@ Validations (`backend/app/models/user.rb`):
 
 ## Rules
 
-- **Identity** is `provider` plus `provider_user_id`. The email is not identity, because GitHub may not send one and an email can change (requirements.md 3.1, section 11). A changed email signs in the same user (AC-01).
+- **Identity** is `provider` plus `provider_user_id`. The email is not identity, because GitHub may not send one and an email can change (requirements.md 3.1, section 11). A changed email signs in the same user (AC-01, AC-02).
 - **The record is created at the first successful sign-in** with that provider account. Later sign-ins find it and create nothing (AC-01, AC-03).
-- **Email is optional.** A provider account without an email signs in, and the record has no email (AC-01).
-- **No account linking.** A Google account and a GitHub account of the same person are two users (requirements.md 3.1).
+- **Email is optional.** A provider account without an email signs in, and the record has no email (AC-01). This includes GitHub accounts, which may send no email (AC-02).
+- **No account linking.** A Google account and a GitHub account of the same person are two users (requirements.md 3.1, AC-02).
 
 ## Chosen approaches
 
 - **Profile fields are set once, at creation.** Later sign-ins do not refresh `display_name`, `email`, or `avatar_url`. The owner chose this for feature 01. Refreshing them is open for a later feature.
 - **Sign-in is the only way a user record is created.** There is no sign-up form and no user API (requirements.md section 1, SSO only).
+- **GitHub identity is the numeric id.** A GitHub account's `provider_user_id` is GitHub's numeric `id` as a string, with `provider` `github`. The login and the email can change, so neither is identity (AC-02).
+- **GitHub display name falls back to the login.** When GitHub sends no public name, `display_name` is the GitHub login. The login is always present for a GitHub account (AC-02).

@@ -1,6 +1,6 @@
 # Feature: 02_github_sign_in
 
-**Stage:** Verify
+**Stage:** Done
 **Approved:** yes, 2026-11-05
 
 ## Acceptance criterion

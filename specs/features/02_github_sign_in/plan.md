@@ -60,36 +60,38 @@ Manual walkthrough for Verify. Run each item against the running app (`docker co
 1. The sign-in screen offers GitHub
    - Steps: open http://localhost:3000 in a private window.
    - Expected: the sign-in screen with "Continue with Google" and "Continue with GitHub".
-   - Result: not run
+   - Result: Pass, 2026-11-09 (owner's manual walkthrough, reported as passed)
 2. First sign-in with GitHub
    - Steps: note the user count (`docker compose run --rm backend bin/rails runner 'p User.count'`). Choose "Continue with GitHub" and approve with a GitHub account that has not signed in before. Check the count again.
    - Expected: the main layout, with the GitHub display name (or login) in the profile area. The count rose by one.
-   - Result: not run
+   - Result: Pass, 2026-11-09 (owner's manual walkthrough, reported as passed)
 3. Sign in again with the same GitHub account
    - Steps: sign in again with the account from item 2. Check the count again.
    - Expected: the main layout, with the same name. The count is unchanged.
-   - Result: not run
+   - Result: Pass, 2026-11-09 (owner's manual walkthrough, reported as passed)
 4. GitHub sign-in is cancelled
    - Steps: choose "Continue with GitHub", then cancel at GitHub.
    - Expected: the sign-in screen with "Sign-in with GitHub did not complete. Try again.". The app shows no signed-in user.
-   - Result: not run
+   - Result: Pass, 2026-11-09 (owner's manual walkthrough, reported as passed)
 5. Google and GitHub are separate users
    - Steps: note the count. Sign in with a Google account, then with a GitHub account, in separate private windows. Check the count.
    - Expected: two more users, one per provider account.
-   - Result: not run
+   - Result: Pass, 2026-11-09 (owner's manual walkthrough, reported as passed)
 
 ## Docs
 
 Written in Polish, from the code as built.
 
-- [ ] 1. `docs/domain/users.md` (update): `## Chosen approaches` gets the GitHub display name fallback (login when no name) and the GitHub id as `provider_user_id`; `## Rules` gets the GitHub email rule (no email is allowed) (AC-02)
+- [x] 1. `docs/domain/users.md` (update): `## Chosen approaches` gets the GitHub display name fallback (login when no name) and the GitHub id as `provider_user_id`; `## Rules` gets the GitHub email rule (no email is allowed) (AC-02)
   - Check: each rule from the approved spec's questions 2 to 4 appears in `users.md`
-- [ ] 2. `docs/api_contract.md` (update): `POST /auth/github` and `GET /auth/github/callback` with their requests, responses, and the `?sign_in_error=github` redirect (AC-02)
+- [x] 2. `docs/api_contract.md` (update): `POST /auth/github` and `GET /auth/github/callback` with their requests, responses, and the `?sign_in_error=github` redirect (AC-02)
   - Check: each GitHub path answers as documented, live: `curl -X POST http://localhost:3000/auth/github` returns 302 to `/?sign_in_error=github`
-- [ ] 3. `docs/conventions.md` (update): the failure message is per provider, and the sign-in screen lists both providers (AC-02)
+- [x] 3. `docs/conventions.md` (update): the failure message is per provider, and the sign-in screen lists both providers (AC-02)
   - Check: each message named in `conventions.md` appears in `frontend/src/App.tsx`
-- [ ] 4. `README.md` (update): "GitHub OAuth credentials" (create the OAuth app, callback `http://localhost:3000/auth/github/callback`, scope `user:email`) and `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in the environment table; remove the "Sign-in with GitHub is not built" limitation (AC-02)
+- [x] 4. `README.md` (update): "GitHub OAuth credentials" (create the OAuth app, callback `http://localhost:3000/auth/github/callback`, scope `user:email`) and `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in the environment table; remove the "Sign-in with GitHub is not built" limitation (AC-02)
   - Check: both variables appear in the README, and the limitation line is gone
+- [x] 5. `README.md` (update): the intro and the stack line name GitHub sign-in too, as built (AC-02) (found in Polish)
+  - Check: the README names both providers that `backend/config/initializers/omniauth.rb` configures, `google_oauth2` and `github`
 
 ## Deviations
 

@@ -2,11 +2,11 @@
 
 A personal knowledge base with review reminders. Notes are organized into collections and tags, and the app reminds you to review them. Each user has a private workspace, and signs in with Google or GitHub (SSO only).
 
-This README covers what is built so far: Google sign-in (feature 01). The rest of the app is specified in `specs/` and is not built yet.
+This README covers what is built so far: Google sign-in (feature 01) and GitHub sign-in (feature 02). The rest of the app is specified in `specs/` and is not built yet.
 
 ## Stack
 
-- Backend: Ruby on Rails 8.1 in API mode, SQLite, OmniAuth (Google)
+- Backend: Ruby on Rails 8.1 in API mode, SQLite, OmniAuth (Google and GitHub)
 - Frontend: React with TypeScript, Vite, Tailwind CSS
 - Tests: RSpec (backend), Vitest with React Testing Library (frontend)
 - Everything runs in Docker (`compose.yaml`)
@@ -40,10 +40,12 @@ Put these in a `.env` file at the repository root. Compose reads it and passes i
 |---|---|---|
 | `GOOGLE_CLIENT_ID` | to sign in with Google | The client id of your Google OAuth client. See below. |
 | `GOOGLE_CLIENT_SECRET` | to sign in with Google | The client secret of that client. |
+| `GITHUB_CLIENT_ID` | to sign in with GitHub | The client id of your GitHub OAuth app. See below. |
+| `GITHUB_CLIENT_SECRET` | to sign in with GitHub | The client secret of that app. |
 | `APP_BASE_URL` | no | The address the app is served at, used to build the sign-in callback URL. Defaults to `http://localhost:3000`. |
 | `SECRET_KEY_BASE` | production only | Signs and encrypts the session cookie. Development and test generate one when none is set. Production must set it, for example with `bin/rails secret`. |
 
-Without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, the app runs, but "Continue with Google" cannot complete a sign-in. Tests do not need them: they use placeholder values and never reach Google.
+Without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, the app runs, but "Continue with Google" cannot complete a sign-in. Without `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, the same is true of "Continue with GitHub". Tests do not need any of them: they use placeholder values and never reach Google or GitHub.
 
 ## Google OAuth credentials
 
@@ -56,6 +58,17 @@ Without `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`, the app runs, but "Contin
 
 The callback URL is built from `APP_BASE_URL`, not from the request's `Host` header, which a client can forge. If you serve the app somewhere else, set `APP_BASE_URL` and add the matching redirect URI in Google.
 
+## GitHub OAuth credentials
+
+1. Open GitHub, and go to Settings → Developer settings → OAuth Apps → New OAuth App.
+2. Set the Homepage URL to `http://localhost:3000`.
+3. Set the Authorization callback URL to `http://localhost:3000/auth/github/callback`.
+4. Register the application, then generate a client secret.
+5. Copy the Client ID and the client secret into `.env` as `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+6. Restart the stack: `docker compose up`.
+
+The app asks GitHub for the `user:email` scope, so GitHub can send your verified primary email. You set no scope in GitHub. As with Google, the callback URL is built from `APP_BASE_URL`. If you serve the app somewhere else, set the callback URL in the GitHub app to match.
+
 ## Google sign-in
 
 - The sign-in screen offers "Continue with Google". Choosing it sends you to Google.
@@ -63,9 +76,17 @@ The callback URL is built from `APP_BASE_URL`, not from the request's `Host` hea
 - A later sign-in with the same Google account finds the same user. It creates no second record, even if your email changed at Google.
 - A cancelled or failed sign-in returns to the sign-in screen with the message "Sign-in with Google did not complete. Try again." The provider's error text is not shown.
 
+## GitHub sign-in
+
+- The sign-in screen offers "Continue with GitHub". Choosing it sends you to GitHub.
+- On the first successful sign-in, the app creates a user record. The record keeps the provider (`github`), your GitHub id, your display name, and your email and avatar if GitHub sends them. If your GitHub profile has no public name, the display name is your GitHub login.
+- A later sign-in with the same GitHub account finds the same user. It creates no second record, even if your email changed at GitHub.
+- A GitHub account with no email signs in, and its record has no email.
+- A Google account and a GitHub account of the same person are two users. The app does not link them.
+- A cancelled or failed sign-in returns to the sign-in screen with the message "Sign-in with GitHub did not complete. Try again." The provider's error text is not shown.
+
 ## Known limitations
 
-- **Sign-in with GitHub** is not built (feature 02).
 - **Sign-out** is not built (feature 05). Use a private browser window to start over.
 - **Logs contain personal data in one place.** The SQL log of a user insert shows the email, the avatar URL, and the Google user id. Rails does not filter SQL in logs. Feature 21 (data privacy) owns this.
 - **The session cookie is not marked `secure`** in the app code. Production sets `force_ssl`, which redirects HTTP to HTTPS, but the cookie flag itself is not set. Open for review before production use.
