@@ -2,7 +2,7 @@
 
 A personal knowledge base with review reminders. Notes are organized into collections and tags, and the app reminds you to review them. Each user has a private workspace, and signs in with Google or GitHub (SSO only).
 
-This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), collections (feature 06), and tags (feature 08). Notes and reviews are specified in `specs/` and are not finished yet.
+This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), collections (feature 06), tags (feature 08), and collection deletion (feature 07). Notes are built and in verification (feature 09). Reviews are specified in `specs/` and are not built yet.
 
 ## Stack
 
@@ -96,6 +96,18 @@ Collections are built (feature 06). All of these are under `/api`, and each need
 | `PATCH` or `PUT` | `/api/collections/:id` | Renames one from `{ "name": "..." }` |
 | `DELETE` | `/api/collections/:id` | Deletes one |
 
+### Notes API
+
+Notes are built (feature 09). Each needs a sign-in, and a note belongs to one of your collections. Under `/api/notes`:
+
+| Method | Path | What it does |
+|---|---|---|
+| `GET` | `/api/notes` | Lists your notes, newest first |
+| `GET` | `/api/notes/:id` | Shows one note in full |
+| `POST` | `/api/notes` | Creates one from `title`, `body`, `source_url`, and `collection_id` |
+| `PATCH` or `PUT` | `/api/notes/:id` | Changes only the fields you send, such as `{ "status": "archived" }` to archive |
+| `DELETE` | `/api/notes/:id` | Deletes one for good |
+
 ### Tags API
 
 Tags are built (feature 08). The same rules and the same shape apply as for collections, under `/api/tags`:
@@ -109,13 +121,21 @@ Tags are built (feature 08). The same rules and the same shape apply as for coll
 
 A request that changes data sends the header `X-CSRF-Token` with the token from `GET /api/csrf`. The full contract is in `specs/docs/api_contract.md`.
 
+## Collection deletion behavior
+
+A collection is deleted only when it holds no notes (AC-07). The app does not move or delete notes for you.
+
+- A collection with notes cannot be deleted, and that includes archived notes. The API answers `409` with `{ "error": "collection_not_empty" }`, and the collection and its notes stay as they are.
+- In the app, the delete confirmation then shows "This collection still has notes. Move or delete them first." Move or delete the notes first, then delete the collection again.
+- A collection with no notes is deleted, and the API answers `204` with no body.
+
 ## Known limitations
 
 - **Sign-in records stay after a cookie expires.** A browser that never logs out keeps its sign-in record after its cookie expires. The record can no longer be used, but nothing removes it (feature 05).
 - **Logs contain personal data in one place.** The SQL log of a user insert shows the email, the avatar URL, and the Google user id. Rails does not filter SQL in logs. Feature 21 (data privacy) owns this.
 - **The session cookie is not marked `secure`** in the app code. Production sets `force_ssl`, which redirects HTTP to HTTPS, but the cookie flag itself is not set. Open for review before production use.
 - **Profile fields are set once.** A later sign-in does not refresh the display name, email, or avatar.
-- **The app shows no notes yet.** The notes area shows its empty state only (feature 09).
+- **Notes cannot be moved yet.** A note stays in the collection it was created in. Moving a note to another collection is feature 11.
 - **Timezone.** Times are stored in UTC. The review features define how "today" is computed (requirements.md section 11).
 
 ## Specifications

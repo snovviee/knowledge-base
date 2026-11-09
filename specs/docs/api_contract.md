@@ -4,12 +4,13 @@
 
 - **Base path.** JSON endpoints are under `/api`. The sign-in routes are under `/auth`, and they are browser redirects, not JSON.
 - **Authentication.** The signed-in user is held in the session cookie `_knowledge_base_session` (`httponly`, `samesite=lax`). The cookie holds the user's id and the token of this browser's sign-in, and the server checks that the sign-in still exists (AC-05). There is no bearer token. Endpoints that need a user return 401 when no one is signed in: never signed in, logged out, or the sign-in ended (AC-05, AC-06).
-- **Error body.** Every JSON error is `{ "error": "<code>" }`. The codes used: `unauthenticated` (401), `invalid_csrf_token` (403), `bad_request` (400), `not_found` (404), and `validation_failed` (422), which also has `fields`, one code per field (AC-05, AC-06).
-- **Status codes used.** 200 for a successful read, 201 for a created record, and 204 with no body for a delete or a logout. 302 for every sign-in redirect. 400 for a body that is not JSON, 401 for a request with no signed-in user, 403 for a missing or wrong anti-forgery token, 404 for a record the user does not have, and 422 for a name that breaks a rule.
+- **Error body.** Every JSON error is `{ "error": "<code>" }`. The codes used: `unauthenticated` (401), `invalid_csrf_token` (403), `bad_request` (400), `not_found` (404), `collection_not_empty` (409), and `validation_failed` (422), which also has `fields`, one code per field (AC-05, AC-06, AC-07).
+- **Status codes used.** 200 for a successful read, 201 for a created record, and 204 with no body for a delete or a logout. 302 for every sign-in redirect. 400 for a body that is not JSON, 401 for a request with no signed-in user, 403 for a missing or wrong anti-forgery token, 404 for a record the user does not have, 409 for a delete that the rules refuse, and 422 for a name that breaks a rule (AC-07).
 - **Session lifetime.** The session cookie expires 30 days after the last request that carries it, and each such request renews it. A cookie kept past its date gets 401 `unauthenticated` (AC-04).
 - **Anti-forgery.** A request that changes data (`POST`, `PATCH`, `PUT`, `DELETE`) under `/api` sends the header `X-CSRF-Token` with the token from `GET /api/csrf` in the same session. Without it, or with another session's token, the answer is 403 `invalid_csrf_token`, and nothing changes. `GET` requests are not checked. The sign-in start routes use their own form field, `authenticity_token` (AC-05, AC-06). Logout is the exception to the order below: when no one is signed in, it answers 204 before the token is checked.
 - **Order of checks.** For a request that changes data: 401 when no one is signed in, then 400 for a body that is not JSON, then 403 for the token, then 404 for a record the user does not have, then 422 for a name that breaks a rule. Nothing changes unless every check passes (AC-06).
-- **Dates and times.** Stored in UTC. Not yet present in any response body.
+- **Dates and times.** Stored in UTC, and sent in response bodies as ISO 8601 in UTC with milliseconds, such as `2026-11-09T08:22:41.000Z` (AC-09).
+- **Note field errors.** A note create or edit that breaks a rule answers 422 with one code per field that breaks it (see [Notes](#notes)). The order of checks is the same as for collections (AC-09).
 
 ## Session
 
@@ -119,9 +120,68 @@ Renames a collection (AC-06). `PUT` to the same path does the same.
 Deletes a collection (AC-06).
 
 - Request: no body, and the header `X-CSRF-Token`.
-- Response `204`: no body. Only the collection is deleted (see the rule in [domain/collections.md](domain/collections.md)).
+- Response `204`: no body. A collection with no notes is deleted (AC-06, AC-07).
+- Response `409`: `{ "error": "collection_not_empty" }`, when the collection has notes, archived notes included. Nothing changes: the collection and its notes stay. The rule is in [domain/collections.md](domain/collections.md) (AC-07).
 - Response `404`: `{ "error": "not_found" }`, as for `PATCH`. A collection deleted in another tab also answers 404.
-- Errors: `401` and `403`. A collection that still has notes is refused. That answer belongs to features 07 and 09, which are not Done, and is not documented here.
+- Errors: `401` and `403`, as for `POST`. The checks come in this order: 401, then 403, then 404, then 409, so a refusal for notes is never given for a collection that is not the user's (AC-07).
+
+## Notes
+
+The signed-in user's notes (AC-09). Every endpoint needs a sign-in. Requests that change data also need the anti-forgery header (see Conventions). The rules for a note's fields are in [domain/notes.md](domain/notes.md).
+
+A note's list entry holds the summary fields. Its detail holds the same plus `body` and `source_url`:
+
+- Summary: `{ "id": <integer>, "title": "<string>", "status": "active" | "archived", "collection": { "id": <integer>, "name": "<string>" }, "created_at": "<ISO 8601>", "updated_at": "<ISO 8601>" }`.
+- Detail: the summary, plus `"body": "<string>"` and `"source_url": "<string>" | null`.
+
+### `GET /api/notes`
+
+Lists the signed-in user's notes, newest first, by the date the note was created (AC-09).
+
+- Request: no body.
+- Response `200`: `{ "notes": [ <summary>, ... ] }`.
+- Errors: `401` `unauthenticated`.
+
+### `GET /api/notes/:id`
+
+Returns one of the user's notes, in full (AC-09).
+
+- Request: no body.
+- Response `200`: `{ "note": <detail> }`.
+- Response `404`: `{ "error": "not_found" }`, for another user's note, a deleted one, or an id that is not a number.
+- Errors: `401` `unauthenticated`.
+
+### `POST /api/notes`
+
+Creates a note in one of the user's collections. It is `active` (AC-09).
+
+- Request: a JSON body `{ "title": "<string>", "body": "<string>", "source_url": "<string>" | null, "collection_id": <integer> }`, and the header `X-CSRF-Token`. A `status` or a user id in the body is ignored. A title or a body that is missing or not text is `blank`; a `source_url` that is missing or null is none, and one that is not text is `invalid`; a `collection_id` that is missing or null is `blank`.
+- Response `201`: `{ "note": <detail> }`, with the title tidied and the source URL trimmed.
+- Response `422`: `{ "error": "validation_failed", "fields": { ... } }`, naming every field that breaks a rule, with one code each. Nothing is created. The codes are:
+  - `title`: `blank`, `too_long`;
+  - `body`: `blank`, `too_long`;
+  - `source_url`: `invalid`, `too_long`;
+  - `collection_id`: `blank` (none given), or `not_found` (another user's collection, a deleted one, or a value that is not a whole number). `not_found` is the same answer for all three, so it never shows whether another user's collection exists.
+- Errors: `401` `unauthenticated`; `400` `bad_request`, when the body is not JSON; `403` `invalid_csrf_token`.
+
+### `PATCH /api/notes/:id`
+
+Changes the fields the request sends, and no others. `PUT` to the same path does the same (AC-09, spec question 9).
+
+- Request: a JSON body with any of `title`, `body`, `source_url`, `status` (`"active"` or `"archived"`), and the header `X-CSRF-Token`. An archive sends `{ "status": "archived" }` and a restore `{ "status": "active" }`. A `collection_id` in the body is ignored: moving a note is AC-11.
+- Response `200`: `{ "note": <detail> }`. Archiving an archived note, or restoring an active one, answers `200` and changes nothing.
+- Response `422`: `{ "error": "validation_failed", "fields": { ... } }`, with the codes for `title`, `body`, and `source_url` as for `POST`, and `status`: `invalid` for any other value. Nothing changes.
+- Response `404`: `{ "error": "not_found" }`, for another user's note, a deleted one, or an id that is not a number. Nothing changes.
+- Errors: `401`, `400`, and `403`, as for `POST`.
+
+### `DELETE /api/notes/:id`
+
+Deletes the user's note for good (AC-09).
+
+- Request: no body, and the header `X-CSRF-Token`.
+- Response `204`: no body. The note is gone from the list.
+- Response `404`: `{ "error": "not_found" }`, as for `PATCH`.
+- Errors: `401` and `403`, as for `POST`.
 
 ## Tags
 

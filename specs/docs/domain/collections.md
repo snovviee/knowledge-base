@@ -29,10 +29,11 @@ Relations: a user has many collections (`backend/app/models/user.rb`). A note be
 - **A collection may keep its own name, or change only its case** (AC-06, question 6).
 - **A user reaches only their own collections.** Another user's collection, a missing one, and an id that is not a number all answer 404 `not_found`, so an answer never shows whether another user's collection exists (AC-06, question 3).
 - **The list is alphabetical, ignoring case** (AC-06, question 8).
-- **Deleting a collection removes only the collection, for now.** What happens to its notes is AC-07 (feature 07), which is not built. Until feature 07 decides, the database refuses to delete a collection that still has notes (feature 09, question 15).
+- **A collection with notes is not deleted.** A delete of a collection that has notes, archived notes included, is refused: the collection and its notes stay, and the API answers 409 `collection_not_empty` (AC-07). A collection with no notes is deleted (AC-06, AC-07). The notes are moved or deleted first; the app does not do either for the user (AC-07).
 
 ## Chosen approaches
 
 - **The answers to spec questions 5 to 8 are the rules above:** tidying, length, case, and order. Each was taken under the owner's standing instruction of 2026-11-05, as the recommended option (AC-06).
 - **`folded_name` is a stored column.** SQLite's `LOWER()` and `NOCASE` fold only ASCII letters, so they cannot meet the case rule in every alphabet. Ruby folds Unicode (feature 06, Decisions).
 - **The same codes are used in every named area.** `blank`, `too_long`, and `taken` mean the same for collections and tags (AC-08). The tag rules are in [domain/tags.md](tags.md).
+- **Deleting a collection with notes is blocked, not moved or cascaded** (AC-07, spec questions 1 and 2). Of the three approaches in requirements.md 3.2, the block keeps every note, and so no note is lost or left without a collection. Archived notes block it too. The database enforces it: the notes' foreign key has no cascade (feature 09). The refusal's message in the browser is in [conventions](../conventions.md) (AC-07, spec question 3).
