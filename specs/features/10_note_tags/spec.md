@@ -1,6 +1,6 @@
 # Feature: 10_note_tags
 
-**Stage:** Ship
+**Stage:** Done
 **Approved:** yes, 2026-11-09 (owner approved the spec)
 
 ## Acceptance criterion
