@@ -2,7 +2,7 @@
 
 A personal knowledge base with review reminders. Notes are organized into collections and tags, and the app reminds you to review them. Each user has a private workspace, and signs in with Google or GitHub (SSO only).
 
-This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), collections (feature 06), tags (feature 08), and collection deletion (feature 07). Notes are built (feature 09). Reviews are specified in `specs/` and are not built yet.
+This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), collections (feature 06), tags (feature 08), and collection deletion (feature 07). Notes are built (feature 09), with tags on notes (feature 10). Reviews are specified in `specs/` and are not built yet.
 
 ## Stack
 
@@ -104,8 +104,8 @@ Notes are built (feature 09). Each needs a sign-in, and a note belongs to one of
 |---|---|---|
 | `GET` | `/api/notes` | Lists your notes, newest first |
 | `GET` | `/api/notes/:id` | Shows one note in full |
-| `POST` | `/api/notes` | Creates one from `title`, `body`, `source_url`, and `collection_id` |
-| `PATCH` or `PUT` | `/api/notes/:id` | Changes only the fields you send, such as `{ "status": "archived" }` to archive |
+| `POST` | `/api/notes` | Creates one from `title`, `body`, `source_url`, `collection_id`, and optionally `tag_ids` |
+| `PATCH` or `PUT` | `/api/notes/:id` | Changes only the fields you send, such as `{ "status": "archived" }` to archive, or `tag_ids` to set the note's tags |
 | `DELETE` | `/api/notes/:id` | Deletes one for good |
 
 ### Tags API
@@ -117,7 +117,7 @@ Tags are built (feature 08). The same rules and the same shape apply as for coll
 | `GET` | `/api/tags` | Lists your tags, in alphabetical order |
 | `POST` | `/api/tags` | Creates one from `{ "name": "..." }` |
 | `PATCH` or `PUT` | `/api/tags/:id` | Renames one from `{ "name": "..." }` |
-| `DELETE` | `/api/tags/:id` | Deletes one |
+| `DELETE` | `/api/tags/:id` | Deletes one. Its notes are kept, and only their link to it goes |
 
 A request that changes data sends the header `X-CSRF-Token` with the token from `GET /api/csrf`. The full contract is in `specs/docs/api_contract.md`.
 

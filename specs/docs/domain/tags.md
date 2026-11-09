@@ -2,7 +2,7 @@
 
 ## Tag
 
-A label a user puts on notes (AC-08). Each `Tag` belongs to one user. Putting a tag on a note and taking it off is AC-10, which is not built yet.
+A label a user puts on notes (AC-08). Each `Tag` belongs to one user. A note has zero or more of its user's tags, and a tag is on a note once, through the link table `note_tags` (AC-10; see [domain/notes.md](notes.md#note-tags)).
 
 Attributes (table `tags`):
 
@@ -29,7 +29,7 @@ Relations: a user has many tags (`backend/app/models/user.rb`).
 - **Another user may use the same name.** Uniqueness is per user (requirements.md 3.3, AC-08).
 - **A user reaches only their own tags.** Another user's tag, a missing one, and an id that is not a number all answer 404 `not_found` (AC-08).
 - **The list is alphabetical, ignoring case** (AC-08).
-- **Deleting a tag removes only the tag.** What happens to the notes that carry it is AC-10, which is not built yet (AC-08).
+- **Deleting a tag removes its links and no note.** The tag is gone, and each note that carried it keeps its other tags and its text. The links go with the tag, through the cascade of `note_tags` (AC-08, AC-10; requirements.md 3.3).
 
 ## Chosen approaches
 
