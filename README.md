@@ -2,7 +2,7 @@
 
 A personal knowledge base with review reminders. Notes are organized into collections and tags, and the app reminds you to review them. Each user has a private workspace, and signs in with Google or GitHub (SSO only).
 
-This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), collections (feature 06), tags (feature 08), and collection deletion (feature 07). Notes are built and in verification (feature 09). Reviews are specified in `specs/` and are not built yet.
+This README covers what is built so far: sign-in with Google and GitHub (features 01 to 03), the session that lasts across page reloads (feature 04), sign-out (feature 05), collections (feature 06), tags (feature 08), and collection deletion (feature 07). Notes are built (feature 09). Reviews are specified in `specs/` and are not built yet.
 
 ## Stack
 

@@ -80,5 +80,6 @@ Written in Polish, from the code as built.
 
 ## Deviations
 
+- 2026-11-09: Polish of this feature ran before its stage gate was set. Polish needs `**Stage:** Polish` and every Test plan item at Pass. This feature went from Verify to Ship without the Polish stage. Its Docs items were written from the code, and they match the code (checked against the controllers, the models, the routes, and the frontend strings). Recorded here as a process deviation; no document changed because of the order.
 - 2026-11-09: Build started while feature 09 is at Build, not Done. Its items 44 to 50 are open. Feature 07 uses only the 409 and the foreign key that feature 09 built (its item 20, ticked). Reason: the owner asked for the build on 2026-11-09, and the spec's draft notes planned for this. Feature 09 must reach Done before Polish of this feature.
 - 2026-11-09, a conflict with an approved document, not changed here: feature 09's approved spec (scenario at its line 275) and its plan's Test plan (the entry for the 409, around line 331) still expect "Could not delete the collection. Try again." for a refused delete. Feature 07 changes that message to the refusal text. Approved documents are not edited in place, so the owner decides how feature 09 records this.

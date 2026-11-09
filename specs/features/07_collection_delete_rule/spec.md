@@ -74,9 +74,9 @@ Based on the answers to questions 1 to 4.
 
 ## Notes for Plan (draft)
 
-From the research of 2026-11-09. These move to `plan.md` once the spec is approved.
+From the research of 2026-11-09, before the spec was approved. Their content is in `plan.md` now, and this list is kept as the record of the research.
 
-- Depends on: 06 and 09. Neither is at Done (06 is at Verify, 09 at Build), so under the strict gate Build waits for them. The owner's standing instruction allows starting anyway, with a Deviation.
+- Depends on: 06 and 09. At the time of the research, neither was at Done (06 was at Verify, 09 at Build). Build of this feature started while 09 was at Build, which `plan.md` records in its Deviations. Both are at Done now.
 - Data: no change. Feature 09's foreign key already guards the delete.
 - Backend: about 4 items, mostly expected to pass at once, because feature 09 (its checklist item 20) built the 409. They would be kept as the AC-07 tests in a new `spec/requests/collection_delete_spec.rb`: active notes, all-archived notes, deleted once empty, and 401, 403, and 404 before 409. The plan must say why they pass at once (Build gate in `specs/README.md`).
 - Frontend: about 2 items. An optional `deleteRefused` text in `NameListTexts`, tested in a new `src/CollectionDelete.test.tsx`.
