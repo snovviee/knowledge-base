@@ -20,6 +20,9 @@ module Auth
         return redirect_to "/?sign_in_error=#{auth.provider == 'github' ? 'github' : 'google'}" unless user
 
         session[:user_id] = user.id
+        # This browser's sign-in. Logout deletes it, which ends this sign-in for good
+        # (features/05_logout).
+        session[:sign_in_token] = user.sign_ins.create!.token
         redirect_to "/", allow_other_host: false
       end
 

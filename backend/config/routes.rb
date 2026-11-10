@@ -8,6 +8,13 @@ Rails.application.routes.draw do
   namespace :api do
     get "csrf", to: "csrf#show"
     get "session", to: "session#show"
+    delete "session", to: "session#destroy"
+    resources :collections, only: %i[index create update destroy]
+    resources :tags, only: %i[index create update destroy]
+    resources :notes, only: %i[index show create update destroy] do
+      # Marks the note as reviewed today (features/13_mark_reviewed).
+      post :review, on: :member
+    end
   end
 
   get "auth/google_oauth2/callback", to: "auth/sessions#google"

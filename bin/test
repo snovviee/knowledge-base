@@ -1,0 +1,76 @@
+#!/bin/sh
+# Runs the checks of the tests in Docker, one after another, then prints a summary
+# (features/27_local_tests). README.md, "Running the tests", tells how to use it.
+#
+#   bin/test               RSpec, Vitest, TypeScript (tsc -b), RuboCop, and ESLint
+#   bin/test --time-zones  RSpec and Vitest in UTC, Pacific/Kiritimati, and Pacific/Pago_Pago
+#
+# Each check's own output shows as it runs. Then a blank line and the summary: one line per
+# check, such as "RSpec: passed" or "RSpec (UTC): failed", and a last line,
+# "All 5 checks passed." or "<n> of 5 checks failed.", or with --time-zones,
+# "All 6 checks passed." or "<n> of 6 checks failed.".
+#
+# Exit status: 0 when every check passed, 1 when any failed, and 2 when no check ran,
+# because Docker cannot be reached or an option is unknown. It uses only POSIX sh and
+# docker, and starts no container but each check's own `docker compose run --rm`.
+
+summary=
+total=0
+failed=0
+
+# run_check NAME ARGUMENTS...: runs `docker compose run --rm ARGUMENTS...`, whose output
+# shows as it runs, and adds the check's line to the summary. The check passes when the
+# command ends with status 0, and fails on any other status, also when it cannot start.
+run_check() {
+  name=$1
+  shift
+  total=$((total + 1))
+  if docker compose run --rm "$@"; then
+    result=passed
+  else
+    result=failed
+    failed=$((failed + 1))
+  fi
+  summary="$summary$name: $result
+"
+}
+
+case "$#:${1-}" in
+  0:) time_zones=false ;;
+  1:--time-zones) time_zones=true ;;
+  *)
+    printf '%s\n' \
+      'Usage: bin/test [--time-zones]' \
+      'Runs the checks in Docker: RSpec, Vitest, TypeScript (tsc -b), RuboCop, and ESLint.' \
+      '  --time-zones  Runs RSpec and Vitest in UTC, Pacific/Kiritimati, and Pacific/Pago_Pago instead.' >&2
+    exit 2
+    ;;
+esac
+
+# A missing docker command fails here too.
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker is not running or not installed. Start Docker, then run bin/test again." >&2
+  exit 2
+fi
+
+if [ "$time_zones" = true ]; then
+  for zone in UTC Pacific/Kiritimati Pacific/Pago_Pago; do
+    run_check "RSpec ($zone)" -e "TZ=$zone" backend bundle exec rspec
+    run_check "Vitest ($zone)" -e "TZ=$zone" frontend npx vitest run
+  done
+else
+  run_check RSpec -e TZ=UTC backend bundle exec rspec
+  run_check Vitest -e TZ=UTC frontend npx vitest run
+  run_check TypeScript frontend npx tsc -b
+  run_check RuboCop backend bundle exec rubocop
+  run_check ESLint frontend npx eslint .
+fi
+
+echo
+printf '%s' "$summary"
+if [ "$failed" -eq 0 ]; then
+  echo "All $total checks passed."
+  exit 0
+fi
+echo "$failed of $total checks failed."
+exit 1

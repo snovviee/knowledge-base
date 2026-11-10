@@ -30,6 +30,7 @@ Relations: a user has many collections (`backend/app/models/user.rb`). A note be
 - **A user reaches only their own collections.** Another user's collection, a missing one, and an id that is not a number all answer 404 `not_found`, so an answer never shows whether another user's collection exists (AC-06, question 3).
 - **The list is alphabetical, ignoring case** (AC-06, question 8).
 - **A collection with notes is not deleted.** A delete of a collection that has notes, archived notes included, is refused: the collection and its notes stay, and the API answers 409 `collection_not_empty` (AC-07). A collection with no notes is deleted (AC-06, AC-07). The notes are moved or deleted first; the app does not do either for the user (AC-07).
+- **A rename sends the user's review reminders.** A successful rename sends the user's new batch to each of their open connections, so the reminders show the new collection name. A refused rename sends nothing. See [notifications.md](notifications.md#batch) (AC-20).
 
 ## Chosen approaches
 

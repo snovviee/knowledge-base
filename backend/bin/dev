@@ -1,2 +1,10 @@
 #!/usr/bin/env ruby
+# Starts the development server; compose's backend service runs it (compose.yaml).
+# First it prepares the development database: it creates the database when there is
+# none, and applies the migrations not yet applied, so a fresh clone or a pull with new
+# migrations needs no setup command (features/26_local_run question 2).
+# The variable below keeps db:prepare to the development database. Without it, Rails
+# also prepares the test database, which a test run may be using. When the prepare
+# fails, no server starts: bin/dev ends with status 1, after Rails' own error output.
+exit 1 unless system({ "SKIP_TEST_DATABASE" => "1" }, "./bin/rails", "db:prepare")
 exec "./bin/rails", "server", *ARGV

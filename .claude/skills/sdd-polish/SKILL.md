@@ -71,5 +71,6 @@ For each mismatch:
 
 ## 6. Finish
 
-1. Set `**Stage:** Ship` in `spec.md`.
-2. Report to the owner: the files created and updated, the drift fixed, anything listed for later, and the next step, Ship.
+1. From AC-29 on: record the Test plan results and tick the other Docs items, then tick the test mapping item if the plan has one, run `docker compose run --rm backend bin/rails test_mapping:write` and then `docker compose run --rm backend bin/rails test_mapping:check`, and leave Polish only when the check passes (`specs/README.md`, step 6).
+2. Set `**Stage:** Ship` in `spec.md`.
+3. Report to the owner: the files created and updated, the drift fixed, anything listed for later, and the next step, Ship.

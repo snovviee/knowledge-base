@@ -12,8 +12,10 @@ gem "puma", ">= 5.0"
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
 
-# Windows does not include zoneinfo files, so bundle the tzinfo-data gem
-gem "tzinfo-data", platforms: %i[ windows jruby ]
+# Time zone data for TZInfo, on every platform. It has the old zone names that the
+# tz database keeps as links, such as Asia/Calcutta and Europe/Kiev, which Chromium
+# reports; the backend image's zoneinfo does not (features/12_review_interval_setting).
+gem "tzinfo-data"
 
 # Reduces boot times through caching; required in config/boot.rb
 gem "bootsnap", require: false
@@ -36,6 +38,12 @@ group :development, :test do
 
   # Test framework [https://rspec.info/features/8-0/rspec-rails/]
   gem "rspec-rails", "~> 8.0"
+end
+
+group :test do
+  # Keeps the tests from reaching other hosts: spec/support/webmock.rb turns it on
+  # (features/27_local_tests).
+  gem "webmock", require: false
 end
 
 gem "omniauth-google-oauth2", "~> 1.2"

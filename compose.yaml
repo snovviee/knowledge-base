@@ -23,6 +23,11 @@ services:
     volumes:
       - .:/app
       - bundle:/usr/local/bundle
+    # bin/dev prepares the development database (creates it, applies new migrations),
+    # then starts the server. It runs from the mounted checkout, so a change to it needs
+    # no image rebuild. `docker compose run --rm backend <command>` replaces this
+    # command, so the tests, the console, and the linters never prepare that database.
+    command: ["bin/dev", "--binding=0.0.0.0", "--port=3000", "--pid=/tmp/rails-server.pid"]
     ports:
       - "127.0.0.1:3000:3000"
 

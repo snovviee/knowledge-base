@@ -16,7 +16,12 @@ Everything runs in Docker (`project.md`). Do not run Ruby, Bundler, Node, or npm
 Run everything through `compose.yaml`. The repo is mounted at `/app`. Gems and node_modules live in named volumes, and the entrypoints in `docker/` reinstall them when the Gemfile or package.json changes.
 
 ```bash
-docker compose up                                     # app on http://localhost:3000, frontend rebuilds on change
+docker compose up                                     # app on http://localhost:3000 (backend runs bin/dev), frontend rebuilds on change
+docker compose exec backend bin/rails sample_data:load  # sample data for the user who signed in last (app running)
+bin/test                                              # all 5 checks in Docker: RSpec, Vitest, tsc -b, RuboCop, ESLint
+bin/test --time-zones                                 # RSpec and Vitest in UTC, Pacific/Kiritimati, Pacific/Pago_Pago (6 checks)
+docker compose run --rm backend bin/rails test_mapping:write   # regenerate specs/docs/test_mapping.md
+docker compose run --rm backend bin/rails test_mapping:check   # fail when specs/docs/test_mapping.md is not current, or a test named in the README table does not exist
 docker compose run --rm backend bundle exec rspec     # full RSpec suite
 docker compose run --rm backend bundle exec rspec spec/path/to_spec.rb -e "AC-13 marks a note as reviewed"   # one test by name
 docker compose run --rm backend bundle exec rubocop   # Ruby lint
@@ -32,13 +37,13 @@ docker compose run --rm frontend npm run build        # tsc -b && vite build, wr
 
 **Two apps, one build output.** `frontend/vite.config.ts` sets `build.outDir` to `../backend/public`, which is gitignored. Compose's `frontend` service runs `vite build --watch` so that directory always holds the latest build. Rails serves that directory as static files: `GET /` returns the built page.
 
-**Backend.** `ApplicationController` inherits from `ActionController::API`. API mode drops the cookie and session middleware, so `backend/config/application.rb` adds them back for sign-in. Routes are `/api/csrf` and `/api/session`, plus the sign-in routes `/auth/google_oauth2` and `/auth/github` (features 01 and 02). `User` is the only model so far. Action Cable is loaded for the real-time review notifications, not built yet.
+**Backend.** `ApplicationController` inherits from `ActionController::API`. API mode drops the cookie and session middleware, so `backend/config/application.rb` adds them back for sign-in. Routes: `/api/csrf`, `/api/session` (show, destroy), `/api/collections`, `/api/tags`, and `/api/notes` (with `POST /api/notes/:id/review`), plus the sign-in routes `/auth/google_oauth2` and `/auth/github`. The `/cable` WebSocket (Action Cable, `ReviewRemindersChannel`) sends real-time review reminders and takes `ack` messages. Models: `User`, `SignIn`, `Collection`, `Tag`, `Note`, `NoteTag`, `ReviewDismissal`, `ReviewAck`, and `ReviewReminderBatch`, with `NoteListFilter` for search and filters.
 
-**Auth.** Google sign-in (feature 01) and GitHub sign-in (feature 02) are built: OmniAuth providers in `backend/config/initializers/omniauth.rb`, the test helper in `backend/spec/support/omniauth.rb`. Logout (AC-05) is not built, so the sign-in screen is the only place a signed-out user sees.
+**Auth.** Google sign-in (feature 01) and GitHub sign-in (feature 02) are built: OmniAuth providers in `backend/config/initializers/omniauth.rb`, the test helper in `backend/spec/support/omniauth.rb`. Logout (AC-05) is built: it deletes the `SignIn` row, so a kept session cookie signs no one in.
 
-**Frontend.** `src/App.tsx` is one component with the session states: loading, the sign-in screen, and the main layout (collections and notes areas, each with its empty state). It is not split into components yet. `src/test/setup.ts` loads jest-dom and runs RTL cleanup after each test. Vitest globals are off, so import `describe`, `it`, and `expect` from `vitest` in each test file.
+**Frontend.** `src/App.tsx` holds the session states (loading, the sign-in screen, the main layout) and the narrow-screen layout. The areas are components: `Collections`, `Tags`, `Notes` (with `NoteDetail`, `NoteForm`, `NoteFilters`, `NoteTags`), and `ReviewReminders`, which uses the WebSocket client in `cable.ts`. `api.ts` sends changes with a CSRF token. `src/test/setup.ts` loads jest-dom and runs RTL cleanup after each test. Vitest globals are off, so import `describe`, `it`, and `expect` from `vitest` in each test file.
 
-**Planned domain areas.** `specs/README.md` lists six: users, collections, tags, notes, reviews, notifications. `users` is built (feature 01). The other five are not.
+**Planned domain areas.** `specs/README.md` lists six: users, collections, tags, notes, reviews, notifications. All six are built.
 
 ## Spec-driven workflow
 
@@ -49,10 +54,10 @@ This is how work gets done here. Read `specs/README.md` before any feature work;
 - The steps are the project skills `/sdd-spec`, `/sdd-plan`, `/sdd-build`, and `/sdd-polish` in `.claude/skills/`. They are user-invoked only, so leave them for the owner to start.
 - TDD is strict. No production code without a failing test, and the test must fail because the behavior is missing. Test names start with the AC ID, for example `it "AC-13 marks a note as reviewed..."`. Find every test for an AC with `grep -r "AC-13" backend frontend`.
 - Approved `spec.md` and `plan.md` files are not edited in place. Behavior changes go under `## Changes` in the spec, which resets its approval. Technical deviations go under `## Deviations` in the plan.
-- `specs/docs/` will describe the system as built. Only the Polish step writes it, and it does not exist yet. Read it before designing a new feature once it does.
+- `specs/docs/` describes the system as built: `domain/` (one file per area), `api_contract.md`, `conventions.md`, `implementation_notes.md`, and `test_mapping.md` (generated). Only the Polish step writes it. Read it before designing a new feature.
 - Ship commits locally with the subject `AC-NN: <topic>`. Never push; the owner pushes.
 
-Feature 01 (Google sign-in) is Done. Its failure redirect was changed to name the provider (see its spec, Changes), and that change is built and approved. Feature 02 (GitHub sign-in) is in Verify: built, with the manual walkthrough and Polish still to run. `specs/docs/` describes the built features: users, the API contract, and the conventions. Polish writes it after each feature is verified.
+All 30 features are at Done. The owner reviews and commits. Polish writes `specs/docs/` after each feature is verified.
 
 ## Stop hook
 
@@ -60,5 +65,5 @@ Feature 01 (Google sign-in) is Done. Its failure redirect was changed to name th
 
 ## Gotchas
 
-- The root `README.md` is still GitLab's default template and does not describe this project. Use the commands above. The real README is an open item (AC-30, feature 30).
+- The root `README.md` is the real developer README (AC-30): quick start, configuration, reference, troubleshooting.
 - Tests must make no real Google or GitHub calls. Use OmniAuth test mode (`requirements.md` section 7).

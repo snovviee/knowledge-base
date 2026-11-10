@@ -1,6 +1,6 @@
 # Plan: 10_note_tags
 
-**Approved:** yes, 2026-11-09 (owner approved the plan)
+**Approved:** yes, 2026-11-10 (the revision that adds items 31 and 32 and Docs items 6 to 8: owner's standing instruction of 2026-11-09; the plan before it: owner approved, 2026-11-09)
 **Depends on:** 06, 08, 09
 
 ## Approach
@@ -28,6 +28,7 @@
   - The list's tag names are a separate element from the list items, so the AC-09 `getAllByRole('listitem')` queries are unchanged.
   - The collection and the tags in one note: a tag and a collection may share a name (feature 08). The form's Tags group and its Collection field are separate elements with separate labels.
   - The tests that the notes and the tags features already have keep their assertions. Their fixtures and their exact-shape helpers gain `tags` (see Checklist items 19 and 26).
+  - (Revision of 2026-11-10, items 31 and 32.) A create and an edit write the note's row and its links in one transaction, and the refused link is rescued outside it. So a tag that is gone by the time its link is written rolls the note's row back too, and the request answers 422 `tag_ids` `not_found` with nothing changed (spec question 5).
   - The notes list fixture in the main-layout stubs answers `GET /api/tags` with the tags the test names, so the new Tags group loads in those tests.
 
 ## Checklist
@@ -92,6 +93,10 @@
   - Test first: AC-10 an open note form keeps its loaded tags until it is opened again (src/NoteTags.test.tsx)
 - [x] 30. [FE] (one assertion changed, see Deviations) The AC-09 frontend tests keep their assertions: the main-layout stubs answer `GET /api/tags` as well, and the fixtures gain `tags: []`. A stub's answer for the form's Tags group does not change the form's other fields.
   - Check: `docker compose run --rm frontend npx vitest run src/Notes.test.tsx src/App.test.tsx src/App.logout.test.tsx`: all tests pass, and `git diff` changes only fixtures and stubs, not the `expect` lines
+- [x] 31. [BE] (added 2026-11-10, see Deviations) An edit whose tag is deleted between the check and the link write answers 422 `{ "error": "validation_failed", "fields": { "tag_ids": "not_found" } }` and changes no field: the title, the updated date, and the tags stay (spec question 5; edge case "a refused request changes no field, the tags included"; scenario "A chosen tag was deleted elsewhere"). The test forces the race as item 16 planned it: the check of the tag ids (`tags_of_the_user`) is skipped, and the tag is deleted before the request, so the link write meets a tag that is gone.
+  - Test first: AC-10 an edit whose tag is deleted during the request answers 422 tag_ids not_found and changes no field (spec/requests/note_tags_spec.rb)
+- [x] 32. [BE] (added 2026-11-10, see Deviations) A create whose tag is deleted between the check and the link write answers 422 with `tag_ids` `not_found` and creates no note and no link (spec question 5): the race that item 16 narrowed away. The test forces the race as item 31 does.
+  - Test first: AC-10 a create whose tag is deleted during the request answers 422 tag_ids not_found and creates no note (spec/requests/note_tags_spec.rb)
 
 ## Test plan
 
@@ -105,14 +110,17 @@ Manual walkthrough for Verify. Run each item against the running app (`docker co
    - Steps: open "New note", fill in the fields, check "ruby" and "web", choose "Create".
    - Expected: the detail shows "Tags" with "ruby" and "web". In the list, the note shows "Work", then "ruby" and "web".
    - Result: Pass, 2026-11-09, the owner's walkthrough: all items passed.
+   - Result: Pass, 2026-11-10, regression walkthrough by Claude after the transaction fix (Playwright, snapshot snap-10fix, head d8309d8): the new note with ruby and web showed "ruby, web" in the detail and in the list, collection "Work".
 3. Take a tag off a note
    - Steps: open a note with "ruby" and "web", choose "Edit", uncheck "web", choose "Save".
    - Expected: the detail and the list show only "ruby".
    - Result: Pass, 2026-11-09, the owner's walkthrough: all items passed.
+   - Result: Pass, 2026-11-10, regression walkthrough by Claude after the transaction fix (Playwright, snapshot snap-10fix, head d8309d8): after unchecking web and saving, the detail and the list showed only "ruby".
 4. Take every tag off a note
    - Steps: from item 3, edit, uncheck "ruby", choose "Save".
    - Expected: the detail shows "No tags". The list shows no tag names for the note.
    - Result: Pass, 2026-11-09, the owner's walkthrough: all items passed.
+   - Result: Pass, 2026-11-10, regression walkthrough by Claude after the transaction fix (Playwright, snapshot snap-10fix, head d8309d8): after unchecking ruby and saving, the detail showed "No tags" and the list showed no tag names.
 5. The list shows tags after the collection
    - Steps: look at a note in "Work" with "web" and "ruby".
    - Expected: the entry shows "Work", then "ruby" and "web", in alphabetical order.
@@ -121,6 +129,7 @@ Manual walkthrough for Verify. Run each item against the running app (`docker co
    - Steps: open the edit form of a note. In another tab, add "web" to the note. Here, change only the title and choose "Save".
    - Expected: the note keeps "web" (the network request has no `tag_ids`).
    - Result: Pass, 2026-11-09, the owner's walkthrough: all items passed.
+   - Result: Pass, 2026-11-10, regression walkthrough by Claude after the transaction fix (Playwright, snapshot snap-10fix, head d8309d8): another tab added web; a save of only the title sent no tag_ids (body: title, body, source_url) and the note kept "web".
 7. The Tags group loads on its own
    - Steps: block `GET /api/tags` in DevTools → Network, then choose "New note".
    - Expected: the Tags group shows "Loading…" and the other fields can be filled in. Once the request answers, the checkboxes show.
@@ -141,10 +150,12 @@ Manual walkthrough for Verify. Run each item against the running app (`docker co
     - Steps: open "New note" with "ruby" checked. In another tab, delete "ruby" in the tags area. Here, fill in the title and the collection and choose "Create".
     - Expected: status 422 with `tag_ids` `not_found`. "A chosen tag no longer exists. Check the tags again." shows under the Tags group; "ruby" is gone from the group, "web" stays checked if it was.
     - Result: Pass, 2026-11-09, the owner's walkthrough: all items passed.
+    - Result: Pass, 2026-11-10, regression walkthrough by Claude after the transaction fix (Playwright, snapshot snap-10fix, head d8309d8): ruby was deleted in a second tab; the create answered 422 tag_ids not_found, the message "A chosen tag no longer exists. Check the tags again." showed, ruby was gone and web stayed checked, and no note was left behind (note count unchanged). The race between check and write itself has no manual step; the automated tests cover it (items 31 and 32).
 12. Another user's tag cannot be put on my note
     - Steps: as the other user, note the id of their tag. As this user, in the console, run `send('POST', '/api/notes', { title: 'T', body: 'B', collection_id: <Work id>, tag_ids: [<their tag id>] })`.
     - Expected: status 422 with `{"error":"validation_failed","fields":{"tag_ids":"not_found"}}`, and no note is created.
     - Result: Pass, 2026-11-09, the owner's walkthrough: all items passed.
+    - Result: Pass, 2026-11-10, regression walkthrough by Claude after the transaction fix (Playwright and in-page API, snapshot snap-10fix, head d8309d8): 422 {"error":"validation_failed","fields":{"tag_ids":"not_found"}}, no note created.
 13. A renamed tag shows its new name on its notes
     - Steps: with a note with "web" in the list, rename "web" to "frontend" in the tags area.
     - Expected: the list shows "frontend" for the note at once, with no reload.
@@ -161,10 +172,12 @@ Manual walkthrough for Verify. Run each item against the running app (`docker co
     - Steps: in the console, `send('POST', '/api/notes', { title: 'T', body: 'B', collection_id: <Work id>, tag_ids: 'ruby' })`, then with `tag_ids: null`.
     - Expected: both answer 422 with `{"error":"validation_failed","fields":{"tag_ids":"invalid"}}`, and no note is created.
     - Result: Pass, 2026-11-09, the owner's walkthrough: all items passed.
+    - Result: Pass, 2026-11-10, regression walkthrough by Claude after the transaction fix (Playwright and in-page API, snapshot snap-10fix, head d8309d8): "ruby" and null both answered 422 tag_ids invalid, no note created.
 17. Edge case: the same tag twice, and the auth checks
     - Steps: `send('POST', '/api/notes', { title: 'T', body: 'B', collection_id: <Work id>, tag_ids: [<ruby id>, <ruby id>] })`. Then, without the token, `curl -s -i -X POST http://localhost:3000/api/notes`.
     - Expected: the note is created with one "ruby" tag. The `curl` answers 401 `{"error":"unauthenticated"}`.
     - Result: Pass, 2026-11-09, the owner's walkthrough: all items passed.
+    - Result: Pass, 2026-11-10, regression walkthrough by Claude after the transaction fix (Playwright and in-page API, snapshot snap-10fix, head d8309d8): the same tag twice gave a note with one tag (201); a POST with no sign-in or token answered 401 {"error":"unauthenticated"}.
 
 ## Docs
 
@@ -180,6 +193,12 @@ Written in Polish, from the code as built.
   - Check: each quoted message appears in `frontend/src/NoteForm.tsx`, `frontend/src/NoteTags.tsx`, or `frontend/src/Tags.tsx`, and each file named exists
 - [x] 5. `README.md` (update): Notes API: the `tags` field and `tag_ids` (AC-10)
   - Check: the README's notes table lists `tag_ids` on create and edit, and says tag deletion keeps notes
+- [x] 6. `docs/conventions.md` (update, added 2026-11-10): "Notes tags backend" says that `create` and `update` write the note and its links in one transaction, and that a link refused at the write answers 422 `tag_ids` `not_found` and changes nothing (items 31 and 32)
+  - Check: the method the paragraph names exists in `backend/app/controllers/api/notes_controller.rb`, and both `create` and `update` call it
+- [x] 7. `docs/api_contract.md` (update, added 2026-11-10): the `PATCH /api/notes/:id` 422 answer lists the `tag_ids` codes `invalid` and `not_found`, as `POST` does (items 12, 13, 15, 31)
+  - Check: every `tag_ids` code in `spec/requests/note_tags_spec.rb` is listed under both `POST /api/notes` and `PATCH /api/notes/:id`
+- [x] 8. `docs/domain/notes.md` (update, added 2026-11-10): the `not_found` rule of a tag id includes a tag deleted while the request runs, and the whole request is still refused (items 31 and 32)
+  - Check: the rule names that case, as the move rule names a collection deleted while the request runs
 
 ## Deviations
 
@@ -191,3 +210,5 @@ Written in Polish, from the code as built.
 - 2026-11-09: The create's note and its tags are written in one transaction (features/10_note_tags Decisions). Before this, a tag refused after the note was saved left the note behind.
 - 2026-11-09: One feature 09 frontend assertion was changed, not only fixtures and stubs, as item 30 requires. In `src/Notes.test.tsx`, "AC-09 New note opens the form with the user's collections and none chosen" checked `within(area).queryByRole('status')` not to be in the document once the collections loaded. The Tags group (feature 10) now has its own "Loading…" status while its tags load, so that check failed. Before: `expect(within(area).queryByRole('status')).not.toBeInTheDocument()`. After: the check is scoped to the collections field, and it also checks that no collections error shows. The intent of the test (the collections have loaded) is kept. The file's other assertions are unchanged, as far as this session's edits show. Feature 09 is Done; this change is recorded here, not in its spec.
 - 2026-11-09: Build complete. The items that passed without a red step that failed for the planned reason, listed so none is hidden: 7 (a create without tag_ids gives no tags, already true), 9 (an empty tag_ids removes every tag, the same branch as item 8), 10 (a missing tag_ids keeps the tags; its guard was checked by a mutation that broke it), 14 (the same id twice counts once, the `uniq` already in place), 18 (the token and sign-in on a tag change, feature 05 and 09 cover them), 29 (an open form keeps its loaded tags; the group loads once per open). The plan called these guards; each test checks the behavior and would fail if the code were broken, except where a mutation check is named above.
+- 2026-11-10: Plan revised in the final stabilization step, under the owner's standing instruction of 2026-11-09 (sdd-plan step 6: ticked items kept; items 31 and 32 and Docs items 6 to 8 added; one Decisions line). Feature 11's Polish listed as drift that `docs/conventions.md` says the tags are written "in the same transaction" as the note, while `update` used none. A probe, run outside the tree with the check of the tag ids skipped (the staging item 16 planned), showed that the code contradicts the approved spec (question 5: "A refused request changes nothing"), so it is a bug, not drift. An edit whose tag was gone at the link write answered Rails's own 422 body (`ActiveRecord::RecordInvalid`, not the error body of `docs/api_contract.md`) and kept its new title and updated date. A create answered 422 `tag_ids` `not_found` but left the note behind: its `rescue ActiveRecord::RecordInvalid` sat inside the `Note.transaction` block, so the block returned false and the transaction committed. An edit naming a tag deleted before the request was already right (the model's check refuses it first). Items 31 and 32 also close the race that item 16 left OPEN. The stage went back from Done to Build for the fix.
+- 2026-11-10: Items 31 and 32 built, each red first for the planned reason. Item 31's test failed on the answer's body (Rails's 422 body for `ActiveRecord::RecordInvalid`, "Name can't be blank, User must exist"); green with one transaction around the edit and the link write, and the rescue outside it. Item 32's test failed on the note count (0 → 1); green with the create's rescue moved out of its transaction block. Refactor: both actions call one private method, `save_with_tags(note) { ... }` in `Api::NotesController`. With the code as it is now, the `RecordInvalid` of a gone tag comes from the unsaved `Tag` that `set_tags` builds for its id (that tag's own checks), not from the link's "tag must exist" check named in the note of 2026-11-09 above; the answer is the same. Mutation proof: a copy of the controller with the transaction removed and the rescue kept, mounted read-only over the file in one test container (`DISABLE_BOOTSNAP=1`), fails both tests, item 31's on the title ("New title") and item 32's on the note count, so they guard the rollback and not only the error body. Full RSpec: 311 examples, 0 failures.

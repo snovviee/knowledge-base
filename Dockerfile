@@ -27,8 +27,10 @@ COPY --chmod=755 docker/backend-entrypoint.sh /usr/local/bin/backend-entrypoint
 ENTRYPOINT ["backend-entrypoint"]
 
 EXPOSE 3000
+# bin/dev prepares the development database, then starts the server, as compose.yaml's
+# backend command does (features/26_local_run question 2).
 # The PID file lives outside the mounted source, so a killed container does not block the next start.
-CMD ["bin/rails", "server", "--binding=0.0.0.0", "--port=3000", "--pid=/tmp/rails-server.pid"]
+CMD ["bin/dev", "--binding=0.0.0.0", "--port=3000", "--pid=/tmp/rails-server.pid"]
 
 # React with Vite: the build, Vitest, ESLint. Works in frontend/.
 FROM node:${NODE_VERSION}-slim AS frontend

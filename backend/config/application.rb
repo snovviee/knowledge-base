@@ -43,7 +43,21 @@ module KnowledgeBase
 
     # API mode leaves out the cookie and session middleware. Sign-in needs both
     # (features/01_google_sign_in). The session holds only the signed-in user's id.
+    # A sign-in lasts until 30 days pass without a request: each request that reads
+    # the session sends the cookie again with a new expiry, and the encrypted cookie
+    # carries the same expiry, so the server refuses a cookie kept past it
+    # (features/04_session_persistence). The cookie's name is set only here: the WebSocket
+    # connection reads the same cookie through config.session_options
+    # (features/22_websocket_auth).
+    config.session_store :cookie_store, key: "_knowledge_base_session", expire_after: 30.days
     config.middleware.use ActionDispatch::Cookies
-    config.middleware.use ActionDispatch::Session::CookieStore, key: "_knowledge_base_session"
+    config.middleware.use config.session_store, config.session_options
+
+    # Only pages of the app's own origin may open the WebSocket at /cable: the Origin header
+    # must equal the request's scheme and Host (allow_same_origin_as_host). The empty list
+    # also turns off the development default that lets any http://localhost:<port> connect.
+    # Another origin, or none, is answered 404 before the sign-in is checked
+    # (features/22_websocket_auth question 6).
+    config.action_cable.allowed_request_origins = []
   end
 end
